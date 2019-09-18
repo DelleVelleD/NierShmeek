@@ -3,18 +3,16 @@ import sys
 from util import *
 
 class WMB_Header(object):
-	def __init__(self, bBox2, bBox3, bBox4, bBox5, bBox6, boneCount, vertexGroupCount, meshCount, meshGroupInfoArrayCount, boneMapCount, bonesetCount, materialCount, meshGroupCount):
+	def __init__(self, ):
 		self.super(WMB_Header, self).__init__()
 		self.magicNumber = b'WMB3'
 		self.version = '20160116' #always this
 		self.unknown08 = 0 #? always zero
 		self.flags = 4294901770 #? always this
-		self.bounding_box1 = 0 #always zero
-		self.bounding_box2 = bBox2
-		self.bounding_box3 = bBox3
-		self.bounding_box4 = bBox4
-		self.bounding_box5 = bBox5
-		self.bounding_box6 = bBox6
+		self.boundingBox1 = 0 #always zero
+		self.boundingBox1 = bBox4
+		self.boundingBox1 = bBox5
+		self.boundingBox1 = bBox6
 		self.boneArrayOffset = 144
 		self.boneCount = boneCount
 		self.boneIndexTranslateTableOffset = boneArrayOffset + (boneCount * 88)
@@ -138,45 +136,31 @@ class wmb3_vertexEx3(object): #0xa
 
 class wmb3_bone(object): #88 bytes (last one has extra 8 bytes)
 	"""docstring for wmb3_bone"""
-	def __init__(self, number, parentIndex, parentBone, worldPosition, worldRotation):	#(int, int, bone, tuple, tuple)
+	def __init__(self, number, parent_index, parent_bone, world_pos, world_rot):	#(int, int, bone, tuple, tuple)
 		super(wmb3_bone, self).__init__()
-		self.boneNumber = number #seems it can be anything, even duplicates
-		self.parentIndex = parentIndex
+		self.boneNumber = number #used for physics in .bxm files
+		self.parentIndex = parent_bone
 
 		#parent_world_pos - world_pos
-		self.local_positionX = parentBone.world_positionX - world_positionX
-		self.local_positionY = parentBone.world_positionY - world_positionY
-		self.local_positionZ = parentBone.world_positionZ - world_positionZ
+		self.local_position = (parent_bone.world_pos[0] - world_pos[0], parent_bone.world_pos[1] - world_pos[1], parent_bone.world_pos[2] - world_pos[2])
 		
 		#parent_world_rot - world_rot
-		self.local_rotationX = parentBone.world_rotationX - world_rotationX	 
-		self.local_rotationY = parentBone.world_rotationY - world_rotationY	 
-		self.local_rotationZ = parentBone.world_rotationZ - world_rotationZ	 
+		self.local_rotation = (parent_bone.world_rot[0] - world_rot[0],  parent_bone.world_rot[1] - world_rot[1],  parent_bone.world_rot[2] - world_rot[2])
 
 		#always 1.0
-		self.local_scaleX = 1.0 
-		self.local_scaleY = 1.0 
-		self.local_scaleZ = 1.0 
+		self.localScale = (1.0, 1.0, 1.0) 
 
 		#armature.bone.head_local
-		self.world_positionX =  worldPosition[0]
-		self.world_positionY =  worldPosition[1]
-		self.world_positionZ =  worldPosition[2]
+		self.worldPosition =  (world_pos[0], world_pos[1], world_pos[2])
 		
 		#?
-		self.world_rotationX = worldRotation[0]
-		self.world_rotationY = worldRotation[1] 
-		self.world_rotationZ = worldRotation[2]
+		self.worldRotation = (world_rot[0], world_rot[1], world_rot[2])
 
 		#always 1.0
-		self.world_scaleX = 1.0 
-		self.world_scaleY = 1.0 
-		self.world_scaleZ = 1.0 
+		self.worldScale = (1.0, 1.0, 1.0)
 		
-		#usually equal to world_pos
-		self.world_position_tposeX = wpX 
-		self.world_position_tposeY = wpY  
-		self.world_position_tposeZ = wpZ 
+		#usually equal to world_pos, might not be needed ingame (test)
+		self.worldPositionTpose = worldPosition
 		
 class wmb3_batch(object):
 	"""docstring for wmb3_batch"""
@@ -350,4 +334,29 @@ class wmb3_material(object):
 		#debug
 		print('Name: ' + materialName)
 		print('Shader: ' + shaderName)
+				
+class wmb3_boneMap(object):
+	"""docstring for wmb3_boneMap"""
+	def __init__(self, bone_array):
+		super(wmb3_boneMap, self).__init__()
+		self.bones = bone_array
+		
+class wmb3_meshGroup(object):
+	"""docstring for wmb3_meshGroup"""
+	def __init__(self, info_offset, name, bbox1, bbox2, material_index_array, bone_index_array): #(int, string, float 3tuple, float 3tuple, array, array)
+		super(wmb3_meshGroup, self).__init__()
+		self.name = name
+		self.nameOffset = info_offset
+		self.boundBox1 = bbox1[0]
+		self.boundBox2 = bbox1[1]
+		self.boundBox3 = bbox1[2]
+		self.boundBox4 = bbox2[0]
+		self.boundBox5 = bbox2[1]
+		self.boundBox6 = bbox2[2]
+		self.materialIndexArray = material_index_array
+		self.materialsOffset = nameOffset + len(name) + 1
+		self.materialsNum = len(material_index_array)
+		self.boneIndexArray = bone_index_array
+		self.bonesOffset = materialsOffset + materialNum * 2
+		self.bonesNum = len(bone_index_array)
 		
