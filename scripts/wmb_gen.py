@@ -3,41 +3,35 @@ import sys
 from util import *
 
 class WMB_Header(object):
-	def __init__(self, ):
+	def __init__(self, bbox1, bbox2, bone_count, bone_table_size, vertex_group_count, batches_offset, batches_count, lods_offset, lods_count, bone_map_offset, bone_map_count, bone_set_count, materials_offset, materials_count, mesh_group_count, mesh_mat_offset, mesh_mat_pair):
 		self.super(WMB_Header, self).__init__()
 		self.magicNumber = b'WMB3'
 		self.version = '20160116' #always this
 		self.unknown08 = 0 #? always zero
 		self.flags = 4294901770 #? always this
-		self.boundingBox1 = 0 #always zero
-		self.boundingBox1 = bBox4
-		self.boundingBox1 = bBox5
-		self.boundingBox1 = bBox6
+		self.boundingBox1 = bbox1
+		self.boundingBox2 = bBox2
 		self.boneArrayOffset = 144
-		self.boneCount = boneCount
-		self.boneIndexTranslateTableOffset = boneArrayOffset + (boneCount * 88)
-		self.boneIndexTranslateTableSize = 0 #?
-		self.vertexGroupArrayOffset = 0 #?
-		self.vertexGroupCount = vertexGroupCount
-		self.meshArrayOffset = 0 #?
-		self.meshCount = meshCount
-		self.meshGroupInfoArrayHeaderOffset = meshArrayOffset + (meshCount * 28)
-		self.meshGroupInfoArrayCount = meshGroupInfoArrayCount
-		self.unknownChunk2Offset = 0 #?
-		self.unknownChunk2DataCount = 0 #?
-		self.boneMapOffset = 0 #?
-		self.boneMapCount = boneMapCount
+		self.boneCount = bone_count
+		self.boneTableOffset = boneArrayOffset + (boneCount * 88)
+		self.boneTableSize = bone_table_size #?
+		self.vertexGroupOffset = boneTableOffset + boneTableSize
+		self.vertexGroupCount = vertex_group_count
+		self.batchesOffset = batches_offset
+		self.batchesCount = batches_count
+		self.lodsOffset = batches_offset + (batches_count * 28)
+		self.lodsCount = lods_count
+		self.boneMapOffset = bone_map_offset
+		self.boneMapCount = bone_map_count
 		self.bonesetOffset = meshMaterialOffset + (meshMaterialCount * 8)
 		self.bonesetCount = bonesetCount
-		self.materialArrayOffset = 0 #?
-		self.materialCount = materialCount
+		self.materialsOffset = materials_offset
+		self.materialsCount = materials_count
 		self.meshGroupOffset = boneMapOffset + (boneMapCount * 4)
-		self.meshGroupCount = meshGroupCount
-		self.meshMaterialOffset = 0 #?
-		self.meshMaterialCount = 0 #?
-		self.unknown84 = 0
-		self.unknown88 = 0
-		self.unknown8C = 0
+		self.meshGroupCount = mesh_group_count
+		self.meshMaterialOffset = mesh_mat_offset
+		self.meshMaterialCount = mesh_mat_pair
+		self.unknowns = 0
 
 class wmb3_vertexGroupHeader(object):
 	"""docstring for wmb3_vertexGroupHeader"""
@@ -73,66 +67,35 @@ class wmb3_vertex(object):
 	"""docstring for wmb3_vertex"""
 	def __init__(self, position, tangent, uv, bone_index, bone_weight): #(float 3tuple, int 3tuple, float 2tuple, int 4tuple, int 4tuple)
 		super(wmb3_vertex, self).__init__()
-		self.positionX = position[0] 
-		self.positionY = position[1] 
-		self.positionZ = position[2] 
-		self.tangentX = (tangent[0] * 255) / 2		
-		self.tangentY = (tangent[1] * 255) / 2	
-		self.tangentZ = (tangent[2] * 255) / 2	
-		self.tangentD = -1						
-		self.textureU = uv[0]	
-		self.textureV = uv[1] 	
-		self.boneIndex1 = bone_index[0]
-		self.boneIndex2 = bone_index[1]
-		self.boneIndex3 = bone_index[2]
-		self.boneIndex4 = bone_index[3]
-		self.boneWeight1 = bone_weight[0]
-		self.boneWeight2 = bone_weight[1]
-		self.boneWeight3 = bone_weight[2]
-		self.boneWeight4 = bone_weight[3]
+		self.position = position 
+		self.tangent = ((tangent[0] * 255) / 2, (tangent[1] * 255) / 2, (tangent[2] * 255) / 2, -1)					
+		self.textureUV = uv 	
+		self.boneIndex = bone_index
+		self.boneWeight = bone_weight
 		
 class wmb3_vertexEx1(object): #0xb
 	"""docstring for wmb3_vertexEx1"""
 	def __init__(self, uv, color, normal): #(float 2tuple, int 3tuple, float 3tuple)
 		super(wmb3_vertexEx1 self).__init__()
-		self.textureU2 = uv[0]
-		self.textureV2 = uv[1]
-		self.colorX = color[0]
-		self.colorY = color[1]
-		self.colorZ = color[2]
-		self.colorD = -1
-		self.normalX = normal[0]
-		self.normalY = normal[1]
-		self.normalZ = normal[2]
-		self.normalD = 0
-		self.textureU3 = textureU2
-		self.textureV3 = textureV2
+		self.textureUV2 = uv
+		self.color = (color[0], color[1], color[2], -1)
+		self.normal = (normal[0], normal[1], normal[2], 0)
+		self.textureUV3 = textureUV2
 		
 class wmb3_vertexEx2(object): #0x7
 	"""docstring for wmb3_vertexEx2"""
 	def __init__(self, uv, normal): #(float 2tuple, float 3tuple)
 		super(wmb3_vertexEx2 self).__init__()
-		self.textureU2 = uv[0]
-		self.textureV2 = uv[1]
-		self.normalX = normal[0]
-		self.normalY = normal[1]
-		self.normalZ = normal[2]
-		self.normalD = 0
+		self.textureUV2 = uv
+		self.normal = (normal[0], normal[1], normal[2], 0)
 			
 class wmb3_vertexEx3(object): #0xa
 	"""docstring for wmb3_vertexEx3"""
 	def __init__(self, uv, color, normal): #(float 2tuple, int 3tuple, float 3tuple)
 		super(wmb3_vertexEx3 self).__init__()
-		self.textureU2 = uv[0]
-		self.textureV2 = uv[1]
-		self.colorX = color[0]
-		self.colorY = color[1]
-		self.colorZ = color[2]
-		self.colorD = -1
-		self.normalX = normal[0]
-		self.normalY = normal[1]
-		self.normalZ = normal[2]
-		self.normalD = 0	
+		self.textureUV2 = uv
+		self.color = (color[0], color[1], color[2], -1)
+		self.normal = (normal[0], normal[1], normal[2], 0)
 
 class wmb3_bone(object): #88 bytes (last one has extra 8 bytes)
 	"""docstring for wmb3_bone"""
@@ -140,25 +103,16 @@ class wmb3_bone(object): #88 bytes (last one has extra 8 bytes)
 		super(wmb3_bone, self).__init__()
 		self.boneNumber = number #used for physics in .bxm files
 		self.parentIndex = parent_bone
-
 		#parent_world_pos - world_pos
 		self.local_position = (parent_bone.world_pos[0] - world_pos[0], parent_bone.world_pos[1] - world_pos[1], parent_bone.world_pos[2] - world_pos[2])
-		
 		#parent_world_rot - world_rot
 		self.local_rotation = (parent_bone.world_rot[0] - world_rot[0],  parent_bone.world_rot[1] - world_rot[1],  parent_bone.world_rot[2] - world_rot[2])
-
-		#always 1.0
 		self.localScale = (1.0, 1.0, 1.0) 
-
-		#armature.bone.head_local
-		self.worldPosition =  (world_pos[0], world_pos[1], world_pos[2])
-		
-		#?
-		self.worldRotation = (world_rot[0], world_rot[1], world_rot[2])
-
-		#always 1.0
+		#armature.pose.bone.head
+		self.worldPosition =  world_pos
+		#armature.pose.bone.matrix.to_euler()
+		self.worldRotation = world_rot
 		self.worldScale = (1.0, 1.0, 1.0)
-		
 		#usually equal to world_pos, might not be needed ingame (test)
 		self.worldPositionTpose = worldPosition
 		
@@ -197,10 +151,10 @@ class wmb3_batchInfo(object):
 
 class wmb3_meshMaterialPair(object): #(int, int)
 	"""docstring for wmb3_meshMaterialPair"""
-	def __init__(self, mesh_id, material_id):
+	def __init__(self, mesh_index, material_index):
 		super(wmb3_meshMaterialPair, self).__init__()
-		self.meshID = mesh_id
-		self.materialID = material_id
+		self.meshIndex = mesh_index
+		self.materialIndex = material_index
 		
 class wmb3_boneSet(object): #(int, array)
 	"""docstring for wmb3_boneSet"""
@@ -233,21 +187,21 @@ class wmb3_material(object):
 		self.textureOffset = techniqueNameOffset + len(techniqueName) + 1
 		textureArray = texture_array
 		self.textureNum = 0
-		self.textureOffsetArray = []
-		self.textureIdentifierArray = []
-		self.textureNames = [] #''
+		self.textureOffsetArray = [] #int
+		self.textureIdentifierArray = [] #string
+		self.textureNames = [] #string
 		self.paramOffset = textureOffsetArray[-1] + len(textureNames[-1]) + 1
 		self.paramNum = 0
-		self.paramIndexArray = [] 
-		self.paramOffsetArray = []
-		self.paramNumArray = []
+		self.paramIndexArray = [] #int
+		self.paramOffsetArray = [] #int
+		self.paramNumArray = [] #int
 		params = 0
-		self.paramArray = [] #0
+		self.paramArray = [] #float
 		self.varOffset = paramOffsetArray[-1] + paramNumArray[-1] * 4
 		self.varNum = 0
-		self.varNameOffestsArray = [varOffset+496] #(0,0)
-		self.varValues = []
-		self.varNames = [] #''
+		self.varNameOffestsArray = [varOffset+496] #int
+		self.varValues = [] #float
+		self.varNames = [] #string
 		
 		#Textures
 		textureOffsetArray.append(textureOffset + textureNum*8)
@@ -347,12 +301,8 @@ class wmb3_meshGroup(object):
 		super(wmb3_meshGroup, self).__init__()
 		self.name = name
 		self.nameOffset = info_offset
-		self.boundBox1 = bbox1[0]
-		self.boundBox2 = bbox1[1]
-		self.boundBox3 = bbox1[2]
-		self.boundBox4 = bbox2[0]
-		self.boundBox5 = bbox2[1]
-		self.boundBox6 = bbox2[2]
+		self.boundBox1 = bbox1
+		self.boundBox2 = bbox2
 		self.materialIndexArray = material_index_array
 		self.materialsOffset = nameOffset + len(name) + 1
 		self.materialsNum = len(material_index_array)
