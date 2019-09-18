@@ -35,7 +35,7 @@ class WMB_Header(object):
 
 class wmb3_vertexGroupHeader(object):
 	"""docstring for wmb3_vertexGroupHeader"""
-	def __init__(self, vertex_offset, vertex_type, vertex_num, face_num): #(int, string, int, int)
+	def __init__(self, vertex_offset, vertex_type, vertex_num, face_num): #(int, int, int, int)
 		super(wmb3_vertexHeader, self).__init__()
 		self.vertexArrayOffset = vertex_offset #int	
 		self.vertexNum = vertex_num
@@ -62,6 +62,9 @@ class wmb3_vertexGroupHeader(object):
 			
 		vertexExArrayOffset = vertexArrayOffset + vertexNum*vertexSize + 8
 		faceArrayOffset = vertexExArrayOffset + vertexNum*vertexExSize
+				
+vertexGroupArray = []
+offset = wmb_file.tell()
 				
 class wmb3_vertex(object):
 	"""docstring for wmb3_vertex"""
@@ -96,13 +99,15 @@ class wmb3_vertexEx3(object): #0xa
 		self.textureUV2 = uv
 		self.color = (color[0], color[1], color[2], -1)
 		self.normal = (normal[0], normal[1], normal[2], 0)
+		
 
+		
 class wmb3_bone(object): #88 bytes (last one has extra 8 bytes)
 	"""docstring for wmb3_bone"""
-	def __init__(self, number, parent_index, parent_bone, world_pos, world_rot):	#(int, int, bone, tuple, tuple)
+	def __init__(self, number, parent_index, world_pos, world_rot, blender_name):	#(int, int, tuple, tuple, string)
 		super(wmb3_bone, self).__init__()
 		self.boneNumber = number #used for physics in .bxm files
-		self.parentIndex = parent_bone
+		self.parentIndex = parent_index
 		#parent_world_pos - world_pos
 		self.local_position = (parent_bone.world_pos[0] - world_pos[0], parent_bone.world_pos[1] - world_pos[1], parent_bone.world_pos[2] - world_pos[2])
 		#parent_world_rot - world_rot
@@ -115,6 +120,20 @@ class wmb3_bone(object): #88 bytes (last one has extra 8 bytes)
 		self.worldScale = (1.0, 1.0, 1.0)
 		#usually equal to world_pos, might not be needed ingame (test)
 		self.worldPositionTpose = worldPosition
+		self.blenderName = blender_name
+
+boneArray = []
+for bone in armature.pose.bones: #edit this
+	number = bone.wmb_num
+	parent_index = -1
+	if bone.parent:
+		for i in range(len(boneArray)):
+			if boneArray[i].blenderName == bone.parent.name:
+				parent_index = i
+	world_pos = bone.head
+	world_rot = bone.matrix.to_euler()
+	name = bone.name
+	boneArray.append(wmb3_bone(number, parent_index, world_pos, world_rot, name))
 		
 class wmb3_batch(object):
 	"""docstring for wmb3_batch"""
