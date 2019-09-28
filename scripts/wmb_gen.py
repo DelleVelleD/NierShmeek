@@ -5,8 +5,8 @@ import os
 import sys
 from util import *
 
-class WMB_Header(object):
-	def __init__(self, bbox1, bbox2, bone_count, bone_table_size, vertex_group_count, batches_offset, batches_count, lods_offset, lods_count, bone_map_offset, bone_map_count, bone_set_count, materials_offset, materials_count, mesh_group_count, mesh_mat_offset, mesh_mat_pair): #(float 3tuple, float 3tuple, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int)
+class wmb3_header(object):
+	def __init__(self, bbox1, bbox2, bone_count, bone_table_size, vertex_group_count, batches_offset, batches_count, lods_count, bone_map_offset, bone_map_count, bone_set_count, materials_offset, materials_count, mesh_group_count, mesh_mat_offset, mesh_mat_pairs): 
 		self.super(WMB_Header, self).__init__()
 		self.magicNumber = b'WMB3'
 		self.version = '20160116' #always this
@@ -14,26 +14,26 @@ class WMB_Header(object):
 		self.flags = 4294901770 #? always this
 		self.boundingBox1 = bbox1
 		self.boundingBox2 = bBox2
-		self.boneArrayOffset = 144
-		self.boneCount = bone_count
-		self.boneTableOffset = boneArrayOffset + (boneCount * 88)
+		self.boneOffset = 144
+		self.boneNum = bone_count
+		self.boneTableOffset = 144 + (bone_count * 88)
 		self.boneTableSize = bone_table_size #?
-		self.vertexGroupOffset = boneTableOffset + boneTableSize
-		self.vertexGroupCount = vertex_group_count
-		self.batchesOffset = batches_offset
-		self.batchesCount = batches_count
-		self.lodsOffset = batches_offset + (batches_count * 28)
-		self.lodsCount = lods_count
+		self.vertexGroupOffset = (144 + (bone_count * 88)) + bone_table_size
+		self.vertexGroupNum = vertex_group_count
+		self.batchOffset = batches_offset
+		self.batchNum = batches_count
+		self.lodOffset = batches_offset + (batches_count * 28)
+		self.lodNum = lods_count
 		self.boneMapOffset = bone_map_offset
-		self.boneMapCount = bone_map_count
-		self.bonesetOffset = meshMaterialOffset + (meshMaterialCount * 8)
-		self.bonesetCount = bonesetCount
-		self.materialsOffset = materials_offset
-		self.materialsCount = materials_count
-		self.meshGroupOffset = boneMapOffset + (boneMapCount * 4)
-		self.meshGroupCount = mesh_group_count
+		self.boneMapNum = bone_map_count
+		self.boneSetOffset = mesh_mat_offset + (mesh_mat_pairs * 8)
+		self.boneSetNum = bone_set_count
+		self.materialOffset = materials_offset
+		self.materialNum = materials_count
+		self.meshGroupOffset = bone_map_offset + (bone_map_count * 4)
+		self.meshGroupNum = mesh_group_count
 		self.meshMaterialOffset = mesh_mat_offset
-		self.meshMaterialCount = mesh_mat_pair
+		self.meshMaterialNum = mesh_mat_pairs
 		self.unknowns = 0
 
 class wmb3_vertexGroup(object):
@@ -287,8 +287,7 @@ class wmb3_meshGroup(object):
 		self.bonesNum = len(bone_index_array)
 		
 		
-currentOffset = 0 #BUFFER.tell() #%TEMP%
-
+currentOffset = 0 
 blenderBones = []
 blenderMeshes = []
 blenderMaterials = []
@@ -313,6 +312,11 @@ wmbLods = []
 wmbMeshGroups = []
 wmbBoneMap = []
 wmbVertexGroups = []
+wmbBoneTable = []
+wmbHeader = 0
+
+def updateOffset():
+	currentOffset = WMBBUFFER.tell()
 
 def generateBlenderInfo():
 	#Bones
@@ -329,7 +333,7 @@ def generateBlenderInfo():
 	for texture in bpy.data.textures:
 		blenderTextures.append(texture)
 	
-def generateBlenderDics():
+def generateBlenderDics(): #requires generateBlenderInfo()
 	#Mesh Name:Vertices
 	for mesh in blenderMeshes:
 		blenderMeshVerticesDic[mesh.data.name] = mesh.data.vertices.values()
@@ -357,8 +361,7 @@ def generateBlenderDics():
 	for i,material in zip(range(len(blenderMaterials)), blenderMaterials):
 		blenderMaterialIndicesDic[material.name] = i
 	
-def generateWMBInfo():
-	#Vertices and VertexExs
+def generateWMBVertices(): #Vertices/VertexExs, requires generateBlenderDics()
 	for mesh in blenderMeshes:
 		#Mesh Info
 		mesh.data.calc_tangents()
@@ -412,7 +415,8 @@ def generateWMBInfo():
 				meshVertexExs.append(wmb3_vertexEx(vertex_uv, vertex_colors, vertex_normal))
 		wmbMeshVerticesDic[mesh.data.name] = meshVertices
 		wmbMeshVertexExsDic[mesh.data.name] = meshVertexExs
-	#Bones
+
+def generateWMBBones(): #Bones, requires generateBlenderInfo()
 	for i,bone in zip(range(len(blenderBones)), blenderBones):
 		number = -1 #bone.wmb_num %TEMP%
 		parent_index = -1
@@ -434,7 +438,10 @@ def generateWMBInfo():
 		#if i == 0: %TEST%
 			#wmbBones.append(wmb3_bone(4095, -1, local_pos, local_rot,  world_pos, world_rot, name))
 		wmbBones.append(wmb3_bone(number, parent_index, local_pos, local_rot,  world_pos, world_rot, name))
-	#Bone Sets
+	if len(wmbBones) < 147:
+		print('There are less than 147 bones, which may cause issues related to the bone index translate table. We dont yet know how it works, so im using pl1040 bones as a default bone table and it has 147 bones.')
+
+def generateWMBBoneSets(): #Bone Sets, requires generateBlenderDics()
 	for mesh in blenderMeshes:
 		offset = currentOffset
 		temp_array = []
@@ -446,7 +453,8 @@ def generateWMBInfo():
 			wmbBoneSets.append(wmb3_boneSet(wmbBoneSets[-1].boneSetOffset + wmbBoneSets[-1].boneIndexNum * 2, temp_array))
 		else:
 			wmbBoneSets.append(wmb3_boneSet(offset, temp_array))
-	#Textures
+
+def generateWMBTextures(): #Textures, requires generateBlenderDics()
 	for mesh in blenderMeshes:
 		material_name = blenderMeshMaterialsDic[mesh.data.name].name
 		for texture in blenderMaterialTexturesDic[material_name]:
@@ -463,19 +471,20 @@ def generateWMBInfo():
 				texture_type = 'g_MaskMap'
 			if texture_slot.use_map_diffuse:
 				texture_type = 'g_LightMap'
-				identifier = '4e9c16f4'
+				identifier = '4e9c16f4' #universal in game
 			if texture_slot.use_map_ambient:
 				texture_type = 'g_EnvMap'
-				identifier = '1fbc0984'
+				identifier = '1fbc0984' #universal in game
 			if texture_slot.use_map_displacement:
 				texture_type = 'g_ParallaxMap'
 			if texture_slot.use_map_emit:
 				texture_type = 'g_IrradianceMap'
-				identifier = '1fbc0984'
+				identifier = '1fbc0984' #universal in game
 			if texture_slot.use_map_warp:
 				texture_type = 'g_CurvatureMap'
 			wmbTextures.append(wmb3_texture(fp, name, texture_type, identifier))
-	#Materials
+
+def generateWMBMaterials(): #Materials, requires generateWMBTextures()
 	for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 		material = blenderMeshMaterialsDic[mesh.data.name]
 		offset = currentOffset
@@ -490,7 +499,8 @@ def generateWMBInfo():
 					texture_array.append(wmb_texture)
 		wmbMaterials.append(wmb3_material(offset, name, shader, texture_array))
 		wmbMaterials[i].updateMaterial()
-	#Batches and Batch Infos and Mesh Material Pairs
+
+def generateWMBBatches(): #Batches/Batch Infos/Mesh Material Pairs, requires generateWMBMaterials()
 	for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 		shader_name = wmbMaterials[i].shaderName
 		vertex_group = -1
@@ -513,10 +523,12 @@ def generateWMBInfo():
 			wmbBatches.append(wmb3_batch(vertex_group, bone_set_index, 0, 0, vertex_count, loop_count, primitive_count))
 		wmbBatchInfos.append(wmb3_batchInfo(i, i, i, i))
 		wmbMeshMaterialPairs.append(wmb3_meshMaterialPair(i, i))
-	#Lods
+
+def generateWMBLods(): #Lods, requires generateWMBBatches()
 	if len(wmbBatches) > 0:
 		wmbLods.append(wmb3_lod(currentOffset, 0, 0, len(wmbBatches)))
-	#Mesh Groups
+	
+def generateWMBMeshGroups(): #Mesh Groups, requires generateWMBBoneSets()
 	for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 	#im setting one mesh group per mesh %TEST%
 	#as of now, bound boxes can be bigger than 1%TEST%
@@ -556,7 +568,8 @@ def generateWMBInfo():
 			wmbMeshGroups.append(wmb3_meshGroup(wmbMeshGroups[-1].bonesOffset + (len(wmbMeshGroups[-1].boneIndexArray) * 2), name, bbox1, bbox2, material_index_array, bone_index_array))
 		else:
 			wmbMeshGroups.append(wmb3_meshGroup(offset, name, bbox1, bbox2, material_index_array, bone_index_array))
-	#Bone Map
+	
+def generateWMBBoneMap(): #Bone Map, requires generateWMBBones()
 	for i,bone in zip(range(len(wmbBones)), wmbBones):
 	#bone doesnt go in here if its local_pos x,y,z = its parents local x,y+.1,z (bones without default length)
 		if i > 0:
@@ -564,7 +577,8 @@ def generateWMBInfo():
 			parent_pos = [round(wmbBones[bone.parentIndex].localPosition[0], 5), round(wmbBones[bone.parentIndex].localPosition[1], 5), round(wmbBones[bone.parentIndex].localPosition[2], 5)]
 			if bone_pos[0] != parent_pos[0] or bone_pos[1] != (parent_pos[1] + 0.1) or bone_pos[2] != parent_pos[2]:
 				wmbBoneMap.append(i)
-	#Vertex Groups (ALL->PBS->EYE)
+	
+def generateWMBVertexGroups(): #Vertex Groups (ALL->PBS->EYE), requires generateWMBBatches() 
 	if len(wmbBatches) > 0:
 		group0 = [0,0]
 		group1 = [0,0]
@@ -582,4 +596,43 @@ def generateWMBInfo():
 		wmbVertexGroups.append(wmb3_vertexGroup(currentOffset + 144, 0xa, group0[0], group0[1]))
 		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[0].loopArrayOffset + wmbVertexGroups[0].loopNum * 4, 0xb, group1[0], group1[1]))
 		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[1].loopArrayOffset + wmbVertexGroups[1].loopNum * 4, 0x7, group2[0], group1[1]))
-			
+
+def generateWMBBoneTable():
+	
+		
+def generateWMBHeader(): #WMB Header, requires all WMB
+	#bbox1, bbox2, bone_count, bone_table_size, vertex_group_count, batches_offset, batches_count, lods_count, bone_map_offset, bone_map_count, bone_set_count, materials_offset, materials_count, mesh_group_count, mesh_mat_offset, mesh_mat_pairs
+	bbox1 = [10,10,10]
+	bbox2 = [-10,-10,-10]
+	bone_count = len(wmbBones)
+	bone_table_size = 0 #%TEMP%
+	vertex_group_count = len(wmbVertexGroups)
+	batches_offset = wmbVertexGroups[2].loopArrayOffset + wmbVertexGroups[2].loopNum * 4
+	batches_count = len(wmbBatches)
+	lods_offset = batches_offset + batches_count*28
+	lods_count = len(wmbLods)
+	mesh_mat_offset = lods_offset + lods_count*20 + batches_count*36 + len('LOD0 ')
+	mesh_mat_pairs = len(wmbMeshMaterialPairs)
+	bone_set_count = len(wmbBoneSets)
+	bone_map_offset = wmbBoneSets[-1].boneSetOffset + wmbBoneSets[-1].boneIndexNum*2
+	bone_map_count = len(wmbBoneMap)
+	mesh_group_count = len(wmbMeshGroups)
+	materials_offset = wmbMeshGroups[-1].bonesOffset + wmbMeshGroups[-1].bonesNum*2
+	materials_count = len(wmbMaterials)
+	#Bound Box
+	for meshGroup in wmbMeshGroups:
+		#Minimum
+		if meshGroup.boundBox1[0] < bbox1[0]:
+			bbox1[0] = meshGroup.boundBox1[0]
+		if meshGroup.boundBox1[1] < bbox1[1]:
+			bbox1[1] = meshGroup.boundBox1[1]
+		if meshGroup.boundBox1[2] < bbox1[2]:
+			bbox1[2] = meshGroup.boundBox1[2]
+		#Maximum
+		if meshGroup.boundBox2[0] > bbox2[0]:
+			bbox2[0] = meshGroup.boundBox2[0]
+		if meshGroup.boundBox2[1] > bbox2[1]:
+			bbox2[1] = meshGroup.boundBox2[1]
+		if meshGroup.boundBox2[2] > bbox2[2]:
+			bbox2[2] = meshGroup.boundBox2[2]
+	wmbHeader = wmb3_header(bbox1, bbox2, bone_count, bone_table_size, vertex_group_count, batches_offset, batches_count, lods_count, bone_map_offset, bone_map_count, bone_set_count, materials_offset, materials_count, mesh_group_count, mesh_mat_offset, mesh_mat_pairs)
