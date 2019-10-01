@@ -3,6 +3,7 @@
 #add debug
 import os
 import sys
+import time
 from util import *
 
 class wmb3_header(object):
@@ -74,7 +75,7 @@ class wmb3_vertex(object):
 	def __init__(self, position, tangent, uv, bone_index, bone_weight): #(float 3tuple, int 3tuple, float 2tuple, int 4tuple, int 4tuple)
 		super(wmb3_vertex, self).__init__()
 		self.position = position 
-		self.tangent = ((tangent[0] * 255) / 2, (tangent[1] * 255) / 2, (tangent[2] * 255) / 2, -1)					
+		self.tangent = tangent				
 		self.textureUV = uv 	
 		self.boneIndex = bone_index
 		self.boneWeight = bone_weight
@@ -84,15 +85,15 @@ class wmb3_vertexEx(object):
 	def __init__(self, uv, color, normal): #(float 2tuple, int 3tuple, float 3tuple)
 		super(wmb3_vertexEx, self).__init__()
 		self.textureUV2 = uv
-		self.color = (color[0], color[1], color[2], -1)
-		self.normal = (normal[0], normal[1], normal[2], 0)
+		self.color = color
+		self.normal = normal
 		self.textureUV3 = uv
 				
 class wmb3_bone(object): #88 bytes (last one has extra 8 bytes)
 	"""docstring for wmb3_bone"""
 	def __init__(self, number, parent_index, local_pos, local_rot, world_pos, world_rot, blender_name): #(int, int, wmb3_bone, 3tuple, 3tuple, string)
 		super(wmb3_bone, self).__init__()
-		self.boneNumber = number #used for physics in .bxm files
+		self.boneNumber = number #used for physics in .bxm files and global table
 		self.parentIndex = parent_index
 		#parent_world_pos - world_pos
 		self.localPosition = local_pos
@@ -286,7 +287,7 @@ class wmb3_meshGroup(object):
 		self.bonesOffset = (info_offset + len(mesh_name) + 1) + (len(material_index_array) * 2)
 		self.bonesNum = len(bone_index_array)
 		
-		
+DEBUG = True
 currentOffset = 0 
 blenderBones = []
 blenderMeshes = []
@@ -301,6 +302,7 @@ blenderBoneIndicesDic = {}
 blenderMaterialIndicesDic = {}
 wmbMeshVerticesDic = {}
 wmbMeshVertexExsDic = {}
+wmbMeshLoopsDic = {}
 wmbBones = []
 wmbBoneSets = []
 wmbMaterials = []
@@ -315,9 +317,10 @@ wmbVertexGroups = []
 wmbBoneTable = []
 wmbHeader = 0
 
-def updateOffset():
-	currentOffset = WMBBUFFER.tell()
+def updateOffset(buffer):
+	currentOffset = buffer.tell()
 
+#Blender Info Grab
 def generateBlenderInfo():
 	#Bones
 	for bone in bpy.data.armatures[0].bones:
@@ -360,14 +363,16 @@ def generateBlenderDics(): #requires generateBlenderInfo()
 	#Material Name:Index
 	for i,material in zip(range(len(blenderMaterials)), blenderMaterials):
 		blenderMaterialIndicesDic[material.name] = i
-	
-def generateWMBVertices(): #Vertices/VertexExs, requires generateBlenderDics()
+
+#WMB Generation
+def generateWMBVertices(): #Vertices/VertexExs/Loops, requires generateBlenderDics()
 	for mesh in blenderMeshes:
 		#Mesh Info
 		mesh.data.calc_tangents()
 		mesh_bones = blenderMeshVertexGroupsDic[mesh.data.name]
 		meshVertices = []
 		meshVertexExs = []
+		meshLoops = []
 		#Vertex Defaults
 		vertex_position = [-1,-1,-1]
 		vertex_normal = [-1,-1,-1]
@@ -398,7 +403,7 @@ def generateWMBVertices(): #Vertices/VertexExs, requires generateBlenderDics()
 					vertex_uv[0]  = mesh.data.uv_layers.active.data[vIndex].uv[0]
 					vertex_uv[1]  = mesh.data.uv_layers.active.data[vIndex].uv[1]
 				except:
-					print("Mesh {} doesnt have a uv".format(mesh.name))
+					print("Mesh {} doesnt have a uv".format(mesh.data.name))
 				#Vertex Color
 				if mesh.data.vertex_colors: 
 					vertex_colors[0] = mesh.data.vertex_colors[0].data[vIndex].color[0]
@@ -411,10 +416,23 @@ def generateWMBVertices(): #Vertices/VertexExs, requires generateBlenderDics()
 						if vGroup.group == vgIndex:
 							vertex_bones.append(blenderBoneIndicesDic[boneName])
 							vertex_weights.append(vGroup.weight)
+				#Pad Vertex Bones and Weights to 4
+				if len(vertex_bones) < 4:
+					for i in range(4-len(vertex_bones)):
+						vertex_bones.append(0)
+				if len(vertex_weights) < 4:
+					for i in range(4-len(vertex_weights)):
+						vertex_weights.append(0)
+				if len(vertex_bones) > 4:
+					vertex_bones = vertex_bones[:4]
+				if len(vertex_weights) > 4:
+					vertex_weights = vertex_weights[:4]
 				meshVertices.append(wmb3_vertex(vertex_position, vertex_tangent, vertex_uv, vertex_bones, vertex_weights))
 				meshVertexExs.append(wmb3_vertexEx(vertex_uv, vertex_colors, vertex_normal))
+			meshLoops.append(vIndex)
 		wmbMeshVerticesDic[mesh.data.name] = meshVertices
 		wmbMeshVertexExsDic[mesh.data.name] = meshVertexExs
+		wmbMeshLoopsDic[mesh.data.name] = meshLoops
 
 def generateWMBBones(): #Bones, requires generateBlenderInfo()
 	for i,bone in zip(range(len(blenderBones)), blenderBones):
@@ -487,19 +505,15 @@ def generateWMBTextures(): #Textures, requires generateBlenderDics()
 def generateWMBMaterials(): #Materials, requires generateWMBTextures()
 	for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 		material = blenderMeshMaterialsDic[mesh.data.name]
-		offset = currentOffset
 		name = material.name
 		shader = '' #material.shader %TEMP%
 		texture_array = []
-		if len(wmbMaterials) > 0:
-			offset = wmbMaterials[-1].varNameOffsetsArray[-1] + len(wmbMaterials[-1].varNames[-1]) + 1
 		for wmb_texture in wmbTextures:
 			for blender_texture in blenderMaterialTexturesDic[material.name]:
 				if wmb_texture.name == blender_texture.image.name:
 					texture_array.append(wmb_texture)
-		wmbMaterials.append(wmb3_material(offset, name, shader, texture_array))
-		wmbMaterials[i].updateMaterial()
-
+		wmbMaterials.append(wmb3_material(0, name, shader, texture_array))
+		
 def generateWMBBatches(): #Batches/Batch Infos/Mesh Material Pairs, requires generateWMBMaterials()
 	for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 		shader_name = wmbMaterials[i].shaderName
@@ -597,15 +611,20 @@ def generateWMBVertexGroups(): #Vertex Groups (ALL->PBS->EYE), requires generate
 		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[0].loopArrayOffset + wmbVertexGroups[0].loopNum * 4, 0xb, group1[0], group1[1]))
 		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[1].loopArrayOffset + wmbVertexGroups[1].loopNum * 4, 0x7, group2[0], group1[1]))
 
-def generateWMBBoneTable():
+def generateWMBBoneTable(): #Currently requires nothing
+	#bone table = pl1040 %TEMP%
+	lvl1 = [16, 32, 48, -1, -1, -1, -1, -1, -1, -1, 64, 80, 96, -1, -1, 112, 128, 144, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 160, 176, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 192, 208, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 224, 240, 256, 272, -1, 288, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 304, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 320, 336, 352, 368, 384, 400, 416, 432, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 448]
+	lvl2 = []
+	lvl3 = [1, 37, 38, 39, 40, 41, 115, 116, 117, 118, 87, 88, 89, 92, 2, 7, 8, 9, 10, 3, 4, 5, 6, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 135, 136, 137, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 109, 110, 111, 105, 106, 107, 108, 101, 102, 103, 104, 97, 98, 99, 100, 93, 94, 95, 96, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 141, 113, 140, 112, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 139, 138, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 91, 90, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 36, 35, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 86, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 42, 44, 43, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 45, 71, 72, 4095, 67, 68, 69, 70, 79, 80, 81, 82, 52, 53, 54, 83, 84, 85, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 73, 74, 75, 76, 77, 78, 46, 47, 48, 49, 50, 51, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 114, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 23, 24, 25, 26, 4095, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 27, 28, 29, 30, 31, 32, 33, 34, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 142, 143, 144, 145, 146, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 0]
 	
+	wmbBoneTable.append(lvl1)
+	wmbBoneTable.append(lvl3)
 		
 def generateWMBHeader(): #WMB Header, requires all WMB
-	#bbox1, bbox2, bone_count, bone_table_size, vertex_group_count, batches_offset, batches_count, lods_count, bone_map_offset, bone_map_count, bone_set_count, materials_offset, materials_count, mesh_group_count, mesh_mat_offset, mesh_mat_pairs
 	bbox1 = [10,10,10]
 	bbox2 = [-10,-10,-10]
 	bone_count = len(wmbBones)
-	bone_table_size = 0 #%TEMP%
+	bone_table_size = 928 #%TEMP%
 	vertex_group_count = len(wmbVertexGroups)
 	batches_offset = wmbVertexGroups[2].loopArrayOffset + wmbVertexGroups[2].loopNum * 4
 	batches_count = len(wmbBatches)
@@ -636,3 +655,210 @@ def generateWMBHeader(): #WMB Header, requires all WMB
 		if meshGroup.boundBox2[2] > bbox2[2]:
 			bbox2[2] = meshGroup.boundBox2[2]
 	wmbHeader = wmb3_header(bbox1, bbox2, bone_count, bone_table_size, vertex_group_count, batches_offset, batches_count, lods_count, bone_map_offset, bone_map_count, bone_set_count, materials_offset, materials_count, mesh_group_count, mesh_mat_offset, mesh_mat_pairs)
+	
+
+		
+def WriteWMB(): #Order: Null Header, Bones, Bone Table, Vertex Groups[O], (Vertices, VertexEx, Loops) per vertex group, Batches, Lods[O], Bone Sets[O], Bone Map, Mesh Groups[O], Materials[O], Header
+	print('-Starting WMB file writing') if DEBUG
+	print('--Grabbing blender information') if DEBUG
+	generateBlenderInfo()
+	generateBlenderDics()
+	
+	#Buffers
+	wmbBuffer = io.BytesIO()
+	wmbHeaderBuffer = io.BytesIO()
+	wmbBonesBuffer = io.BytesIO()
+	wmbBoneTableBuffer = io.BytesIO()
+	wmbVertexGroupsBuffer = io.BytesIO()
+	
+	#Null Header
+	print('--Generating/Writing null WMB header') if DEBUG
+	wmbHeaderBuffer.write(util.nullBytes(144))
+	wmbBuffer.write(wmbHeaderBuffer.getbuffer())
+	
+	#Bones
+	print('--Generating/Writing WMB bones') if DEBUG
+	start_time = time.time()
+	start_pos = wmbBuffer.tell()
+	generateWMBBones()
+	for bone in wmbBones:
+		#Number and Parent Index
+		wmbBonesBuffer.write(util.to_2Byte(bone.boneNumber))
+		wmbBonesBuffer.write(util.to_2Byte(bone.parentIndex))
+		#Local Position/Rotation/Scale
+		wmbBonesBuffer.write(util.to_4Byte(bone.localPosition[0]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.localPosition[1]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.localPosition[2]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.localRotation[0]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.localRotation[1]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.localRotation[2]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.localScale[0]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.localScale[1]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.localScale[2]))
+		#World Position/Rotation/Scale/Tpose
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldPosition[0]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldPosition[1]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldPosition[2]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldRotation[0]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldRotation[1]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldRotation[2]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldScale[0]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldScale[1]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldScale[2]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldPositionTpose[0]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldPositionTpose[1]))
+		wmbBonesBuffer.write(util.to_4Byte(bone.worldPositionTpose[2]))
+	wmbBuffer.write(wmbBonesBuffer.getbuffer())
+	wmbBonesBuffer.close()
+	print('--Finished writing WMB bones at position: {} in {} seconds'.format(start_pos, time.time()-start_time)) if DEBUG
+	
+	#Bone Table
+	print('--Generating/Writing WMB bone index translate table') if DEBUG
+	start_time = time.time()
+	start_pos = wmbBuffer.tell()
+	generateWMBBoneTable()
+	for i in wmbBoneTable:
+		wmbBoneTableBuffer.write(util.to_2Byte(i))
+	wmbBuffer.write(wmbBoneTableBuffer.getbuffer())
+	wmbBoneTableBuffer.close()
+	print('--Finished writing WMB bone index translate table at position: {} in {} seconds'.format(start_pos, time.time()-start_time)) if DEBUG
+	
+	#Null Vertex Groups
+	print('--Generating/Writing null WMB vertex groups') if DEBUG
+	wmbVertexGroupsBuffer.write(util.nullBytes(144))
+	wmbBuffer.write(wmbVertexGroupsBuffer.getbuffer())
+	
+	#Vertices/VertexExs/Loops
+	print('--Generating WMB vertices/vertexExs/loops/textures/materials/batches and writing vertices/vertexExs/loops') if DEBUG
+	start_time = time.time()
+	start_pos = wmbBuffer.tell()
+	generateWMBVertices()
+	print('---Generating WMB vertices/vertexExs/loops took {} seconds'.format(time.time()-start_time)) if DEBUG
+	generateWMBTextures()
+	generateWMBMaterials()
+	generateWMBBatches()
+	verticesBuffer1 = io.BytesIO()
+	verticesBuffer2 = io.BytesIO()
+	verticesBuffer3 = io.BytesIO()
+	vertexExsBuffer1 = io.BytesIO()
+	vertexExsBuffer2 = io.BytesIO()
+	vertexExsBuffer3 = io.BytesIO()
+	loopsBuffer1 = io.BytesIO()
+	loopsBuffer2 = io.BytesIO()
+	loopsBuffer3 = io.BytesIO()
+	for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
+		if wmbBatches[i].vertexGroupIndex == 0:
+			for vertex in wmbMeshVerticesDic[mesh.data.name]:
+				verticesBuffer1.write(to_4Byte(vertex.position[0]))
+				verticesBuffer1.write(to_4Byte(vertex.position[1]))
+				verticesBuffer1.write(to_4Byte(vertex.position[2]))
+				verticesBuffer1.write(to_1Byte(vertex.tangent[0]))
+				verticesBuffer1.write(to_1Byte(vertex.tangent[0]))
+				verticesBuffer1.write(to_1Byte(vertex.tangent[0]))
+				verticesBuffer1.write(to_1Byte(255))
+				verticesBuffer1.write(to_2Byte(vertex.textureUV[0]))
+				verticesBuffer1.write(to_2Byte(vertex.textureUV[1]))
+				verticesBuffer1.write(to_1Byte(vertex.boneIndex[0])))
+				verticesBuffer1.write(to_1Byte(vertex.boneIndex[1])))
+				verticesBuffer1.write(to_1Byte(vertex.boneIndex[2])))
+				verticesBuffer1.write(to_1Byte(vertex.boneIndex[3])))
+				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[0]*255))))
+				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[1]*255))))
+				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[2]*255))))
+				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[3]*255))))
+			for vertexEx in wmbMeshVertexExsDic[mesh.data.name]:
+				vertexExsBuffer1.write(to_2Byte(vertexEx.textureUV2[0]))
+				vertexExsBuffer1.write(to_2Byte(vertexEx.textureUV2[0]))
+				vertexExsBuffer1.write(to_1Byte(int(vertexEx.color[0]*255))
+				vertexExsBuffer1.write(to_1Byte(int(vertexEx.color[1]*255))
+				vertexExsBuffer1.write(to_1Byte(int(vertexEx.color[2]*255))
+				vertexExsBuffer1.write(to_1Byte(255)
+				vertexExsBuffer1.write(to_2Byte(vertexEx.normal[0]))
+				vertexExsBuffer1.write(to_2Byte(vertexEx.normal[1]))
+				vertexExsBuffer1.write(to_2Byte(vertexEx.normal[2]))
+				vertexExsBuffer1.write(to_2Byte(0))
+			for vertex_index in wmbMeshLoopsDic[mesh.data.name]:
+				loopsBuffer1.write(to_4Byte(vertex_index))
+		if wmbBatches[i].vertexGroupIndex == 1:
+			for vertex in wmbMeshVerticesDic[mesh.data.name]:
+				verticesBuffer2.write(to_4Byte(vertex.position[0]))
+				verticesBuffer2.write(to_4Byte(vertex.position[1]))
+				verticesBuffer2.write(to_4Byte(vertex.position[2]))
+				verticesBuffer2.write(to_1Byte(vertex.tangent[0]))
+				verticesBuffer2.write(to_1Byte(vertex.tangent[0]))
+				verticesBuffer2.write(to_1Byte(vertex.tangent[0]))
+				verticesBuffer2.write(to_1Byte(255))
+				verticesBuffer2.write(to_2Byte(vertex.textureUV[0]))
+				verticesBuffer2.write(to_2Byte(vertex.textureUV[1]))
+				verticesBuffer2.write(to_1Byte(vertex.boneIndex[0])))
+				verticesBuffer2.write(to_1Byte(vertex.boneIndex[1])))
+				verticesBuffer2.write(to_1Byte(vertex.boneIndex[2])))
+				verticesBuffer2.write(to_1Byte(vertex.boneIndex[3])))
+				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[0]*255))))
+				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[1]*255))))
+				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[2]*255))))
+				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[3]*255))))
+			for vertexEx in wmbMeshVertexExsDic[mesh.data.name]:
+				vertexExsBuffer2.write(to_2Byte(vertexEx.textureUV2[0]))
+				vertexExsBuffer2.write(to_2Byte(vertexEx.textureUV2[0]))
+				vertexExsBuffer2.write(to_1Byte(int(vertexEx.color[0]*255))
+				vertexExsBuffer2.write(to_1Byte(int(vertexEx.color[1]*255))
+				vertexExsBuffer2.write(to_1Byte(int(vertexEx.color[2]*255))
+				vertexExsBuffer2.write(to_1Byte(255)
+				vertexExsBuffer2.write(to_2Byte(vertexEx.normal[0]))
+				vertexExsBuffer2.write(to_2Byte(vertexEx.normal[1]))
+				vertexExsBuffer2.write(to_2Byte(vertexEx.normal[2]))
+				vertexExsBuffer2.write(to_2Byte(0))
+				vertexExsBuffer2.write(to_2Byte(vertexEx.textureUV3[0]))
+				vertexExsBuffer2.write(to_2Byte(vertexEx.textureUV3[0]))
+			for vertex_index in wmbMeshLoopsDic[mesh.data.name]:
+				loopsBuffer2.write(to_4Byte(vertex_index))	
+		if wmbBatches[i].vertexGroupIndex == 2:
+			for vertex in wmbMeshVerticesDic[mesh.data.name]:
+				verticesBuffer3.write(to_4Byte(vertex.position[0]))
+				verticesBuffer3.write(to_4Byte(vertex.position[1]))
+				verticesBuffer3.write(to_4Byte(vertex.position[2]))
+				verticesBuffer3.write(to_1Byte(vertex.tangent[0]))
+				verticesBuffer3.write(to_1Byte(vertex.tangent[0]))
+				verticesBuffer3.write(to_1Byte(vertex.tangent[0]))
+				verticesBuffer3.write(to_1Byte(255))
+				verticesBuffer3.write(to_2Byte(vertex.textureUV[0]))
+				verticesBuffer3.write(to_2Byte(vertex.textureUV[1]))
+				verticesBuffer3.write(to_1Byte(vertex.boneIndex[0])))
+				verticesBuffer3.write(to_1Byte(vertex.boneIndex[1])))
+				verticesBuffer3.write(to_1Byte(vertex.boneIndex[2])))
+				verticesBuffer3.write(to_1Byte(vertex.boneIndex[3])))
+				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[0]*255))))
+				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[1]*255))))
+				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[2]*255))))
+				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[3]*255))))
+			for vertexEx in wmbMeshVertexExsDic[mesh.data.name]:
+				vertexExsBuffer3.write(to_2Byte(vertexEx.textureUV2[0]))
+				vertexExsBuffer3.write(to_2Byte(vertexEx.textureUV2[0]))
+				vertexExsBuffer3.write(to_2Byte(vertexEx.normal[0]))
+				vertexExsBuffer3.write(to_2Byte(vertexEx.normal[1]))
+				vertexExsBuffer3.write(to_2Byte(vertexEx.normal[2]))
+				vertexExsBuffer3.write(to_2Byte(0))
+			for vertex_index in wmbMeshLoopsDic[mesh.data.name]:
+				loopsBuffer3.write(to_4Byte(vertex_index))
+	wmbBuffer.write(verticesBuffer1)
+	wmbBuffer.write(vertexExsBuffer1)
+	wmbBuffer.write(loopsBuffer1)
+	wmbBuffer.write(verticesBuffer2)
+	wmbBuffer.write(vertexExsBuffer2)
+	wmbBuffer.write(loopsBuffer2)
+	wmbBuffer.write(verticesBuffer3)
+	wmbBuffer.write(vertexExsBuffer3)
+	wmbBuffer.write(loopsBuffer3)
+	verticesBuffer1.close()
+	verticesBuffer2.close()
+	verticesBuffer3.close()
+	vertexExsBuffer1.close()
+	vertexExsBuffer2.close()
+	vertexExsBuffer3.close()
+	loopsBuffer1.close()
+	loopsBuffer2.close()
+	loopsBuffer3.close()
+	print('--Finished writing WMB bone index translate table at position: {} in {} seconds'.format(start_pos, time.time()-start_time)) if DEBUG
+	
+	#Batches
