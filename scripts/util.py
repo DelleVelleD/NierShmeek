@@ -28,9 +28,6 @@ def current_postion(fp):
 	print(hex(fp.tell()))
 
 
-def random_identifier():
-	num = random.randint(0,4294967295)
-	return format(num, 'x')
 
 def dds_number(dds_path):
 	split_dds = dds_path.split('_')
@@ -52,11 +49,31 @@ def find_files(dir_name,ext):
 def nullBytes(num): 
 	return b"".join([b"\x00" for x in range(num)])
 
-def floatTo2Byte(number): 
-	return np.float16(number).view("int16")
-
-def to_bytes(arg):
+def to_1Byte(arg): #no negatives
 	if type(arg) == int:
-		return struct.pack('<I', arg)
+		if arg == 0:
+			return nullBytes(1)
+		else:
+			return struct.pack('<B', arg)
+	if type(arg) == float:
+		return struct.pack('<B', int(round((arg * 127.5 + 127.5) / 2)))
+	
+def to_2Byte(arg): 
+	if type(arg) == float:
+		return struct.pack('<h', np.float16(arg).view("int16"))
+	if type(arg) == int:
+		if arg == 0:
+			return nullBytes(2)
+		else:
+			return struct.pack('<h', arg)
+
+def to_4Byte(arg):
+	if type(arg) == int:
+		if arg == 0:
+			return nullBytes(4)
+		else:
+			return struct.pack('<i', arg)
 	if type(arg) == str:
-		return struct.pack('<I', int(arg, 16))
+		return arg.encode('utf-8')+nullBytes(1)
+	if type(arg) == float:
+		return struct.pack('<f', arg)
