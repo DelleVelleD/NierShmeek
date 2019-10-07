@@ -33,24 +33,24 @@ wmbMeshGroups = []
 wmbBoneMap = []
 wmbVertexGroups = []
 wmbBoneTable = []
-wmbHeader = 0
+wmbHeaders = []
 wmbVerticesOffset = 0
 wmbVertexGroupsOffset = 0
 
 class wmb3_header(object):
 	def __init__(self, bbox1, bbox2, bone_count, bone_table_size, vertex_group_count, batches_offset, batches_count, lods_count, bone_map_offset, bone_map_count, bone_set_count, materials_offset, materials_count, mesh_group_count, mesh_mat_offset, mesh_mat_pairs): 
-		self.super(WMB_Header, self).__init__()
+		super(wmb3_header, self).__init__()
 		self.magicNumber = b'WMB3'
-		self.version = '20160116' #always this
+		self.version = 538312982 #always this
 		self.unknown08 = 0 #? always zero
-		self.flags = 4294901770 #? always this
+		self.flags = -65526 #? always this
 		self.boundingBox1 = bbox1
-		self.boundingBox2 = bBox2
+		self.boundingBox2 = bbox2
 		self.boneOffset = 144
 		self.boneNum = bone_count
-		self.boneTableOffset = 144 + (bone_count * 88)
+		self.boneTableOffset = 144 + (bone_count * 88) + 8
 		self.boneTableSize = bone_table_size #?
-		self.vertexGroupOffset = (144 + (bone_count * 88)) + bone_table_size
+		self.vertexGroupOffset = (144 + (bone_count * 88) + 8) + bone_table_size
 		self.vertexGroupNum = vertex_group_count
 		self.batchOffset = batches_offset
 		self.batchNum = batches_count
@@ -290,7 +290,6 @@ class wmb3_material(object):
 				self.varNames = ['Binormal0', 'Color0', 'Normal', 'Position', 'Tangent0', 'TexCoord0', 'TexCoord1', 'g_1BitMask', 'g_AlbedoColor_X', 'g_AlbedoColor_Y', 'g_AlbedoColor_Z', 'g_AmbientLightIntensity', 'g_Anisotropic', 'g_Decal', 'g_DetailNormalTile_X', 'g_DetailNormalTile_Y', 'g_Glossiness', 'g_IsSwatchRender', 'g_LighIntensity0', 'g_LighIntensity1', 'g_LighIntensity2', 'g_LightColor0_X', 'g_LightColor0_Y', 'g_LightColor0_Z', 'g_LightColor1_X', 'g_LightColor1_Y', 'g_LightColor1_Z', 'g_LightColor2_X', 'g_LightColor2_Y', 'g_LightColor2_Z', 'g_LightIntensity', 'g_Metallic', 'g_NormalReverse', 'g_ObjWetStrength', 'g_OffShadowCast', 'g_ReflectionIntensity', 'g_Tile_X', 'g_Tile_Y', 'g_UV2Use', 'g_UseDetailNormalMap', 'g_UseEnvWet', 'g_UseLightMap', 'g_UseNormalMap', 'g_UseObjWet', 'g_UseOcclusionMap', 'g_WetConvergenceGlossiness', 'g_WetMagAlbedo', 'g_bAlbedoOverWrite', 'g_bGlossinessOverWrite', 'g_bMetalicOverWrite']
 				self.varValues = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 1.0, 0.2, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.6, 0.5, 0.0, 0.0, 0.0]
 			#Parameters
-			self.paramIndexArray = [0, -1]
 			self.paramNumArray = [params - 4, 4]
 			self.paramOffsetArray = [self.paramOffset + self.paramNum * 12 + 8, (self.paramOffset + self.paramNum * 12 + 8) + self.paramNumArray[0] * 4]
 			self.varOffset = self.paramOffsetArray[-1] + self.paramNumArray[-1] * 4
@@ -580,7 +579,7 @@ def generateWMBMeshGroups(): #Mesh Groups, requires generateWMBBoneSets()
 		#Index Arrays
 		material_index_array.append(blenderMaterialIndicesDic[blenderMeshMaterialsDic[name].name])
 		for bone in wmbBoneSets[i].boneArray:
-			bone_index_array.append(blenderBoneIndicesDic[bone.name])
+			bone_index_array.append(bone)
 		if len(wmbMeshGroups) > 0:
 			wmbMeshGroups.append(wmb3_meshGroup(wmbMeshGroups[-1].bonesOffset + (len(wmbMeshGroups[-1].boneIndexArray) * 2), name, bbox1, bbox2, material_index_array, bone_index_array))
 		else:
@@ -619,7 +618,6 @@ def generateWMBBoneTable(): #Currently requires nothing
 	lvl1 = [16, 32, 48, -1, -1, -1, -1, -1, -1, -1, 64, 80, 96, -1, -1, 112, 128, 144, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 160, 176, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 192, 208, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 224, 240, 256, 272, -1, 288, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 304, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 320, 336, 352, 368, 384, 400, 416, 432, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 448]
 	lvl2 = []
 	lvl3 = [1, 37, 38, 39, 40, 41, 115, 116, 117, 118, 87, 88, 89, 92, 2, 7, 8, 9, 10, 3, 4, 5, 6, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 135, 136, 137, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 109, 110, 111, 105, 106, 107, 108, 101, 102, 103, 104, 97, 98, 99, 100, 93, 94, 95, 96, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 141, 113, 140, 112, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 139, 138, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 91, 90, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 36, 35, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 86, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 42, 44, 43, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 45, 71, 72, 4095, 67, 68, 69, 70, 79, 80, 81, 82, 52, 53, 54, 83, 84, 85, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 73, 74, 75, 76, 77, 78, 46, 47, 48, 49, 50, 51, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 114, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 23, 24, 25, 26, 4095, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 27, 28, 29, 30, 31, 32, 33, 34, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 142, 143, 144, 145, 146, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 4095, 0]
-	
 	wmbBoneTable.append(lvl1)
 	wmbBoneTable.append(lvl3)
 		
@@ -657,14 +655,45 @@ def generateWMBHeader(): #WMB Header, requires all WMB
 			bbox2[1] = meshGroup.boundBox2[1]
 		if meshGroup.boundBox2[2] > bbox2[2]:
 			bbox2[2] = meshGroup.boundBox2[2]
-	wmbHeader = wmb3_header(bbox1, bbox2, bone_count, bone_table_size, vertex_group_count, batches_offset, batches_count, lods_count, bone_map_offset, bone_map_count, bone_set_count, materials_offset, materials_count, mesh_group_count, mesh_mat_offset, mesh_mat_pairs)
+	wmbHeaders.append(wmb3_header(bbox1, bbox2, bone_count, bone_table_size, vertex_group_count, batches_offset, batches_count, lods_count, bone_map_offset, bone_map_count, bone_set_count, materials_offset, materials_count, mesh_group_count, mesh_mat_offset, mesh_mat_pairs))
 	
 def WriteWMB(dir, DEBUG): 
-	print('-Starting WMB file writing') if DEBUG
-	print('--Grabbing blender information') if DEBUG
+	#Pre-cleanup
+	currentOffset = 0 
+	blenderBones.clear()
+	blenderMeshes.clear()
+	blenderMaterials.clear()
+	blenderTextures.clear()
+	blenderMeshVerticesDic.clear()
+	blenderMeshLoopsDic.clear()
+	blenderMeshVertexGroupsDic.clear()
+	blenderMeshMaterialsDic.clear()
+	blenderMaterialTexturesDic.clear()
+	blenderBoneIndicesDic.clear()
+	blenderMaterialIndicesDic.clear()
+	wmbMeshVerticesDic.clear()
+	wmbMeshVertexExsDic.clear()
+	wmbMeshLoopsDic.clear()
+	wmbBones.clear()
+	wmbBoneSets.clear()
+	wmbMaterials.clear()
+	wmbTextures.clear()
+	wmbBatches.clear()
+	wmbBatchInfos.clear()
+	wmbMeshMaterialPairs.clear()
+	wmbLods.clear()
+	wmbMeshGroups.clear()
+	wmbBoneMap.clear()
+	wmbVertexGroups.clear()
+	wmbBoneTable.clear()
+	wmbHeaders.clear()
+	wmbVerticesOffset = 0
+	wmbVertexGroupsOffset = 0
+	#Begin
+	print('-Starting WMB file writing') 
+	print('--Grabbing blender information') 
 	generateBlenderInfo()
 	generateBlenderDics()
-	
 	#Buffers
 	wmbBuffer = io.BytesIO()
 	wmbHeaderBuffer = io.BytesIO()
@@ -679,14 +708,11 @@ def WriteWMB(dir, DEBUG):
 	wmbBoneMapBuffer = io.BytesIO()
 	wmbMeshGroupsBuffer = io.BytesIO()
 	wmbMaterialsBuffer = io.BytesIO()
-	
 	#Null Header
-	print('--Generating/Writing null WMB header') if DEBUG
-	wmbHeaderBuffer.write(nullBytes(144))
-	wmbBuffer.write(wmbHeaderBuffer.getbuffer())
-	
+	print('--Writing null WMB header at position: {}'.format(wmbBuffer.tell())) 
+	wmbBuffer.write(nullBytes(144))
 	#Bones
-	print('--Writing WMB bones at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB bones at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	generateWMBBones()
 	for bone in wmbBones:
@@ -717,27 +743,27 @@ def WriteWMB(dir, DEBUG):
 		wmbBonesBuffer.write(to_4Byte(bone.worldPositionTpose[1]))
 		wmbBonesBuffer.write(to_4Byte(bone.worldPositionTpose[2]))
 	wmbBuffer.write(wmbBonesBuffer.getbuffer())
-	print('--Finished writing WMB bones in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	wmbBuffer.write(nullBytes(8))
+	print('--Finished writing WMB bones in {} seconds'.format(time.time()-start_time)) 
 	#Bone Table
-	print('--Writing WMB bone index translate table at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB bone index translate table at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	generateWMBBoneTable()
-	for i in wmbBoneTable:
+	for i in wmbBoneTable[0]:
+		wmbBoneTableBuffer.write(to_2Byte(i))
+	for i in wmbBoneTable[1]:
 		wmbBoneTableBuffer.write(to_2Byte(i))
 	wmbBuffer.write(wmbBoneTableBuffer.getbuffer())
-	print('--Finished writing WMB bone index translate table in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	print('--Finished writing WMB bone index translate table in {} seconds'.format(time.time()-start_time)) 
 	#Null Vertex Groups
-	print('--Generating/Writing null WMB vertex groups') if DEBUG
+	print('--Writing null WMB vertex groups at position: {}'.format(wmbBuffer.tell())) 
 	wmbVertexGroupsOffset = wmbBuffer.tell()
 	wmbBuffer.write(nullBytes(144))
-	
 	#Vertices/VertexExs/Loops
-	print('--Generating WMB vertices/vertexExs/loops/textures/materials/batches') if DEBUG
+	print('--Generating WMB vertices/vertexExs/loops/textures/materials/batches') 
 	start_time = time.time()
 	generateWMBVertices()
-	print('---Generating WMB vertices/vertexExs/loops took {} seconds'.format(time.time()-start_time)) if DEBUG
+	print('---Generating WMB vertices/vertexExs/loops took {} seconds'.format(time.time()-start_time)) 
 	generateWMBTextures()
 	generateWMBMaterials()
 	generateWMBBatches()
@@ -762,28 +788,28 @@ def WriteWMB(dir, DEBUG):
 				verticesBuffer1.write(to_1Byte(255))
 				verticesBuffer1.write(to_2Byte(vertex.textureUV[0]))
 				verticesBuffer1.write(to_2Byte(vertex.textureUV[1]))
-				verticesBuffer1.write(to_1Byte(vertex.boneIndex[0])))
-				verticesBuffer1.write(to_1Byte(vertex.boneIndex[1])))
-				verticesBuffer1.write(to_1Byte(vertex.boneIndex[2])))
-				verticesBuffer1.write(to_1Byte(vertex.boneIndex[3])))
-				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[0]*255))))
-				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[1]*255))))
-				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[2]*255))))
-				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[3]*255))))
+				verticesBuffer1.write(to_1Byte(vertex.boneIndex[0]))
+				verticesBuffer1.write(to_1Byte(vertex.boneIndex[1]))
+				verticesBuffer1.write(to_1Byte(vertex.boneIndex[2]))
+				verticesBuffer1.write(to_1Byte(vertex.boneIndex[3]))
+				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[0]*255)))
+				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[1]*255)))
+				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[2]*255)))
+				verticesBuffer1.write(to_1Byte(int(vertex.boneWeight[3]*255)))
 			for vertexEx in wmbMeshVertexExsDic[mesh.data.name]:
 				vertexExsBuffer1.write(to_2Byte(vertexEx.textureUV2[0]))
 				vertexExsBuffer1.write(to_2Byte(vertexEx.textureUV2[0]))
-				vertexExsBuffer1.write(to_1Byte(int(vertexEx.color[0]*255))
-				vertexExsBuffer1.write(to_1Byte(int(vertexEx.color[1]*255))
-				vertexExsBuffer1.write(to_1Byte(int(vertexEx.color[2]*255))
-				vertexExsBuffer1.write(to_1Byte(255)
+				vertexExsBuffer1.write(to_1Byte(int(vertexEx.color[0]*255)))
+				vertexExsBuffer1.write(to_1Byte(int(vertexEx.color[1]*255)))
+				vertexExsBuffer1.write(to_1Byte(int(vertexEx.color[2]*255)))
+				vertexExsBuffer1.write(to_1Byte(255))
 				vertexExsBuffer1.write(to_2Byte(vertexEx.normal[0]))
 				vertexExsBuffer1.write(to_2Byte(vertexEx.normal[1]))
 				vertexExsBuffer1.write(to_2Byte(vertexEx.normal[2]))
 				vertexExsBuffer1.write(to_2Byte(0))
 			for vertex_index in wmbMeshLoopsDic[mesh.data.name]:
 				loopsBuffer1.write(to_4Byte(vertex_index))
-		if wmbBatches[i].vertexGroupIndex == 1:
+		elif wmbBatches[i].vertexGroupIndex == 1:
 			for vertex in wmbMeshVerticesDic[mesh.data.name]:
 				verticesBuffer2.write(to_4Byte(vertex.position[0]))
 				verticesBuffer2.write(to_4Byte(vertex.position[1]))
@@ -794,21 +820,21 @@ def WriteWMB(dir, DEBUG):
 				verticesBuffer2.write(to_1Byte(255))
 				verticesBuffer2.write(to_2Byte(vertex.textureUV[0]))
 				verticesBuffer2.write(to_2Byte(vertex.textureUV[1]))
-				verticesBuffer2.write(to_1Byte(vertex.boneIndex[0])))
-				verticesBuffer2.write(to_1Byte(vertex.boneIndex[1])))
-				verticesBuffer2.write(to_1Byte(vertex.boneIndex[2])))
-				verticesBuffer2.write(to_1Byte(vertex.boneIndex[3])))
-				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[0]*255))))
-				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[1]*255))))
-				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[2]*255))))
-				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[3]*255))))
+				verticesBuffer2.write(to_1Byte(vertex.boneIndex[0]))
+				verticesBuffer2.write(to_1Byte(vertex.boneIndex[1]))
+				verticesBuffer2.write(to_1Byte(vertex.boneIndex[2]))
+				verticesBuffer2.write(to_1Byte(vertex.boneIndex[3]))
+				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[0]*255)))
+				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[1]*255)))
+				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[2]*255)))
+				verticesBuffer2.write(to_1Byte(int(vertex.boneWeight[3]*255)))
 			for vertexEx in wmbMeshVertexExsDic[mesh.data.name]:
 				vertexExsBuffer2.write(to_2Byte(vertexEx.textureUV2[0]))
 				vertexExsBuffer2.write(to_2Byte(vertexEx.textureUV2[0]))
-				vertexExsBuffer2.write(to_1Byte(int(vertexEx.color[0]*255))
-				vertexExsBuffer2.write(to_1Byte(int(vertexEx.color[1]*255))
-				vertexExsBuffer2.write(to_1Byte(int(vertexEx.color[2]*255))
-				vertexExsBuffer2.write(to_1Byte(255)
+				vertexExsBuffer2.write(to_1Byte(int(vertexEx.color[0]*255)))
+				vertexExsBuffer2.write(to_1Byte(int(vertexEx.color[1]*255)))
+				vertexExsBuffer2.write(to_1Byte(int(vertexEx.color[2]*255)))
+				vertexExsBuffer2.write(to_1Byte(255))
 				vertexExsBuffer2.write(to_2Byte(vertexEx.normal[0]))
 				vertexExsBuffer2.write(to_2Byte(vertexEx.normal[1]))
 				vertexExsBuffer2.write(to_2Byte(vertexEx.normal[2]))
@@ -817,7 +843,7 @@ def WriteWMB(dir, DEBUG):
 				vertexExsBuffer2.write(to_2Byte(vertexEx.textureUV3[0]))
 			for vertex_index in wmbMeshLoopsDic[mesh.data.name]:
 				loopsBuffer2.write(to_4Byte(vertex_index))	
-		if wmbBatches[i].vertexGroupIndex == 2:
+		elif wmbBatches[i].vertexGroupIndex == 2:
 			for vertex in wmbMeshVerticesDic[mesh.data.name]:
 				verticesBuffer3.write(to_4Byte(vertex.position[0]))
 				verticesBuffer3.write(to_4Byte(vertex.position[1]))
@@ -828,14 +854,14 @@ def WriteWMB(dir, DEBUG):
 				verticesBuffer3.write(to_1Byte(255))
 				verticesBuffer3.write(to_2Byte(vertex.textureUV[0]))
 				verticesBuffer3.write(to_2Byte(vertex.textureUV[1]))
-				verticesBuffer3.write(to_1Byte(vertex.boneIndex[0])))
-				verticesBuffer3.write(to_1Byte(vertex.boneIndex[1])))
-				verticesBuffer3.write(to_1Byte(vertex.boneIndex[2])))
-				verticesBuffer3.write(to_1Byte(vertex.boneIndex[3])))
-				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[0]*255))))
-				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[1]*255))))
-				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[2]*255))))
-				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[3]*255))))
+				verticesBuffer3.write(to_1Byte(vertex.boneIndex[0]))
+				verticesBuffer3.write(to_1Byte(vertex.boneIndex[1]))
+				verticesBuffer3.write(to_1Byte(vertex.boneIndex[2]))
+				verticesBuffer3.write(to_1Byte(vertex.boneIndex[3]))
+				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[0]*255)))
+				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[1]*255)))
+				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[2]*255)))
+				verticesBuffer3.write(to_1Byte(int(vertex.boneWeight[3]*255)))
 			for vertexEx in wmbMeshVertexExsDic[mesh.data.name]:
 				vertexExsBuffer3.write(to_2Byte(vertexEx.textureUV2[0]))
 				vertexExsBuffer3.write(to_2Byte(vertexEx.textureUV2[0]))
@@ -845,23 +871,24 @@ def WriteWMB(dir, DEBUG):
 				vertexExsBuffer3.write(to_2Byte(0))
 			for vertex_index in wmbMeshLoopsDic[mesh.data.name]:
 				loopsBuffer3.write(to_4Byte(vertex_index))
-	print('---Writing the first group of vertices/vertexEx/loops at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('---Writing the first group of vertices at position: {}'.format(wmbBuffer.tell())) 
 	wmbVerticesOffset = wmbBuffer.tell()
-	wmbBuffer.write(verticesBuffer1)
-	wmbBuffer.write(vertexExsBuffer1)
-	wmbBuffer.write(loopsBuffer1)
-	print('---Writing the second group of vertices/vertexEx/loops at position: {}'.format(wmbBuffer.tell())) if DEBUG
-	wmbBuffer.write(verticesBuffer2)
-	wmbBuffer.write(vertexExsBuffer2)
-	wmbBuffer.write(loopsBuffer2)
-	print('---Writing the third group of vertices/vertexEx/loops at position: {}'.format(wmbBuffer.tell())) if DEBUG
-	wmbBuffer.write(verticesBuffer3)
-	wmbBuffer.write(vertexExsBuffer3)
-	wmbBuffer.write(loopsBuffer3)
-	print('--Finished writing WMB vertices/vertexExs/loops in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	wmbBuffer.write(verticesBuffer1.getbuffer())
+	print('---Writing the first group of vertexEx at position: {}'.format(wmbBuffer.tell())) 
+	wmbBuffer.write(vertexExsBuffer1.getbuffer())
+	print('---Writing the first group of loops at position: {}'.format(wmbBuffer.tell())) 
+	wmbBuffer.write(loopsBuffer1.getbuffer())
+	print('---Writing the second group of vertices/vertexEx/loops at position: {}'.format(wmbBuffer.tell())) 
+	wmbBuffer.write(verticesBuffer2.getbuffer())
+	wmbBuffer.write(vertexExsBuffer2.getbuffer())
+	wmbBuffer.write(loopsBuffer2.getbuffer())
+	print('---Writing the third group of vertices/vertexEx/loops at position: {}'.format(wmbBuffer.tell())) 
+	wmbBuffer.write(verticesBuffer3.getbuffer())
+	wmbBuffer.write(vertexExsBuffer3.getbuffer())
+	wmbBuffer.write(loopsBuffer3.getbuffer())
+	print('--Finished writing WMB vertices/vertexExs/loops in {} seconds'.format(time.time()-start_time)) 
 	#Batches
-	print('--Writing WMB batches at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB batches at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	for batch in wmbBatches:
 		wmbBatchesBuffer.write(to_4Byte(batch.vertexGroupIndex))
@@ -872,10 +899,9 @@ def WriteWMB(dir, DEBUG):
 		wmbBatchesBuffer.write(to_4Byte(batch.loopNum))
 		wmbBatchesBuffer.write(to_4Byte(batch.primitiveNum))
 	wmbBuffer.write(wmbBatchesBuffer.getbuffer())
-	print('--Finished writing WMB batches in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	print('--Finished writing WMB batches in {} seconds'.format(time.time()-start_time)) 
 	#Lods
-	print('--Writing WMB lods at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB lods at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	updateOffset(wmbBuffer)
 	generateWMBLods()
@@ -886,10 +912,9 @@ def WriteWMB(dir, DEBUG):
 		wmbLodsBuffer.write(to_4Byte(lod.batchInfoOffset))
 		wmbLodsBuffer.write(to_4Byte(lod.batchInfoNum))
 	wmbBuffer.write(wmbLodsBuffer.getbuffer())
-	print('--Finished writing WMB lods in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	print('--Finished writing WMB lods in {} seconds'.format(time.time()-start_time)) 
 	#Batch Infos
-	print('--Writing WMB batch infos at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB batch infos at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	for batchInfo in wmbBatchInfos:
 		wmbBatchInfosBuffer.write(to_4Byte(batchInfo.vertexGroupIndex))
@@ -899,23 +924,20 @@ def WriteWMB(dir, DEBUG):
 		wmbBatchInfosBuffer.write(to_4Byte(batchInfo.meshMaterialPairIndex))
 		wmbBatchInfosBuffer.write(to_4Byte(-1))
 	wmbBuffer.write(wmbBatchInfosBuffer.getbuffer())
-	print('--Finished writing WMB batch infos in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	print('--Finished writing WMB batch infos in {} seconds'.format(time.time()-start_time)) 
 	#Lod Name
-	print('--Writing lod name at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing lod name at position: {}'.format(wmbBuffer.tell())) 
 	wmbBuffer.write(to_4Byte('LOD0')+nullBytes(7))
-	
 	#Mesh Material Pairs
-	print('--Writing WMB mesh material pairs at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB mesh material pairs at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	for meshMat in wmbMeshMaterialPairs:
 		wmbMeshMatsBuffer.write(to_4Byte(meshMat.meshIndex))
 		wmbMeshMatsBuffer.write(to_4Byte(meshMat.materialIndex))
 	wmbBuffer.write(wmbMeshMatsBuffer.getbuffer())
-	print('--Finished writing WMB mesh material pairs in {} seconds'.format(time.time()-start_time)) if DEBUG	
-	
+	print('--Finished writing WMB mesh material pairs in {} seconds'.format(time.time()-start_time)) 	
 	#Bone Sets
-	print('--Writing WMB bone sets at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB bone sets at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	updateOffset(wmbBuffer)
 	generateWMBBoneSets()
@@ -931,17 +953,15 @@ def WriteWMB(dir, DEBUG):
 			wmbBoneSetsBuffer.write(to_2Byte(boneIndex))
 			wmbBoneSetsBuffer.write(nullBytes(padding*2))
 	wmbBuffer.write(wmbBoneSetsBuffer.getbuffer())
-	print('--Finished writing WMB bone sets in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	print('--Finished writing WMB bone sets in {} seconds'.format(time.time()-start_time)) 
 	#Bone Map
-	print('--Writing WMB bone map at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB bone map at position: {}'.format(wmbBuffer.tell())) 
 	generateWMBBoneMap()
 	for boneIndex in wmbBoneMap:
 		wmbBoneMapBuffer.write(to_4Byte(boneIndex))
 	wmbBuffer.write(wmbBoneMapBuffer.getbuffer())
-	
 	#Mesh Groups
-	print('--Writing WMB mesh groups at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB mesh groups at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	updateOffset(wmbBuffer)
 	generateWMBMeshGroups()
@@ -967,13 +987,12 @@ def WriteWMB(dir, DEBUG):
 		padding = len(wmbMeshGroupsBuffer.getbuffer()) % 8
 		wmbMeshGroupsBuffer.write(nullBytes(padding))
 	wmbBuffer.write(wmbMeshGroupsBuffer.getbuffer())
-	print('--Finished writing WMB mesh groups in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	print('--Finished writing WMB mesh groups in {} seconds'.format(time.time()-start_time)) 
 	#Materials
-	print('--Writing WMB mesh groups at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB materials at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	updateOffset(wmbBuffer)
-	wmbMaterials = []
+	wmbMaterials.clear()
 	generateWMBMaterials()
 	for material in wmbMaterials:
 		wmbMaterialsBuffer.write(material.first8Bytes)
@@ -994,11 +1013,11 @@ def WriteWMB(dir, DEBUG):
 		#Textures
 		for texOffset,texIdentifier in zip(material.textureOffsetArray, material.textureIdentifierArray):
 			wmbMaterialsBuffer.write(to_4Byte(texOffset))
-			wmbMaterialsBuffer.write(to_4Byte(texIndentifier))
+			wmbMaterialsBuffer.write(to_4Byte(texIdentifier))
 		for texName in material.textureNames:
 			wmbMaterialsBuffer.write(to_4Byte(texName))
-		if wmbMaterialsBuffer % 8 != 0:
-			padding = wmbMaterialsBuffer % 8
+		if len(wmbMaterialsBuffer.getbuffer()) % 8 != 0:
+			padding = len(wmbMaterialsBuffer.getbuffer()) % 8
 			wmbMaterialsBuffer.write(nullBytes(padding))
 		#Parameters
 		for i,pIndex,pOffset in zip(range(material.paramNum), material.paramIndexArray, material.paramOffsetArray):
@@ -1015,13 +1034,13 @@ def WriteWMB(dir, DEBUG):
 		for vName in material.varNames:
 			wmbMaterialsBuffer.write(to_4Byte(vName))
 	wmbBuffer.write(wmbMaterialsBuffer.getbuffer())
-	print('--Finished writing WMB materials in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	print('--Finished writing WMB materials in {} seconds'.format(time.time()-start_time)) 
 	#Vertex Groups
 	wmbBuffer.seek(wmbVertexGroupsOffset)
-	print('--Writing WMB vertex groups at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB vertex groups at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	currentOffset = wmbVerticesOffset
+	print(currentOffset)
 	generateWMBVertexGroups()
 	for vertexGroup in wmbVertexGroups:
 		wmbVertexGroupsBuffer.write(to_4Byte(vertexGroup.vertexArrayOffset))
@@ -1037,14 +1056,14 @@ def WriteWMB(dir, DEBUG):
 		wmbVertexGroupsBuffer.write(to_4Byte(vertexGroup.loopArrayOffset))
 		wmbVertexGroupsBuffer.write(to_4Byte(vertexGroup.loopNum))
 	wmbBuffer.write(wmbVertexGroupsBuffer.getbuffer())
-	print('--Finished writing WMB materials in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	print('--Finished writing WMB materials in {} seconds'.format(time.time()-start_time)) 
 	#WMB Header
 	wmbBuffer.seek(0)
-	print('--Writing WMB header at position: {}'.format(wmbBuffer.tell())) if DEBUG
+	print('--Writing WMB header at position: {}'.format(wmbBuffer.tell())) 
 	start_time = time.time()
 	generateWMBHeader()
-	wmbHeaderBuffer.write(to_4Byte(wmbHeader.magicNumber))
+	wmbHeader = wmbHeaders[0]
+	wmbHeaderBuffer.write(wmbHeader.magicNumber)
 	wmbHeaderBuffer.write(to_4Byte(wmbHeader.version))
 	wmbHeaderBuffer.write(to_4Byte(0))
 	wmbHeaderBuffer.write(to_4Byte(wmbHeader.flags))
@@ -1078,13 +1097,11 @@ def WriteWMB(dir, DEBUG):
 	wmbHeaderBuffer.write(to_4Byte(wmbHeader.meshMaterialNum))
 	wmbHeaderBuffer.write(nullBytes(16))
 	wmbBuffer.write(wmbHeaderBuffer.getbuffer())
-	print('--Finished writing WMB header in {} seconds'.format(time.time()-start_time)) if DEBUG
-	
+	print('--Finished writing WMB header in {} seconds'.format(time.time()-start_time)) 
 	#File Write
-	print('-Finished WMB file writing at: ' + dir) if DEBUG
+	print('-Finished WMB file writing at: ' + dir) 
 	wmb_fp = open(dir, 'wb')
 	wmb_fp.write(wmbBuffer.getbuffer())
-	
 	#File/Buffers Close
 	wmb_fp.close()
 	wmbBuffer.close()
@@ -1123,3 +1140,5 @@ if __name__ == '__main__':
 		main(sys.argv[3],sys.argv[4], False)
 	if len(sys.argv) > 5:
 		main(sys.argv[3],sys.argv[4], True)
+
+WriteWMB('C:\\NierA\\temp\\6\\pl1040.wmb', True)
