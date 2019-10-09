@@ -53,10 +53,13 @@ def to_1Byte(arg): #no negatives
 	if type(arg) == int:
 		if arg == 0:
 			return nullBytes(1)
+		elif arg < 0:
+			return struct.pack('<B', 255)
 		else:
 			return struct.pack('<B', arg)
 	if type(arg) == float:
-		return struct.pack('<B', int(round((arg * 127.5 + 127.5) / 2)))
+		else:
+			return struct.pack('<B', int(round((arg * 127 + 127))))
 	
 def to_2Byte(arg): 
 	if type(arg) == float:
