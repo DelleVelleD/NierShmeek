@@ -20,10 +20,6 @@ def find_files(dir_name,ext):
 				filenameArray.append(filename)
 	filenameArray.sort(key=dds_number)
 	return filenameArray
-
-def random_identifier():
-	num = random.randint(0,4294967295)
-	return format(num, 'x')
 	
 def to_bytes(arg):
 	if type(arg) == int:
@@ -31,13 +27,14 @@ def to_bytes(arg):
 	if type(arg) == str:
 		return struct.pack('<I', int(arg, 16))
 
-def main(out_dir, wta_name, dds_dir, albedos):
-	wta_fp = open(out_dir + '/' + wta_name + '.wta','wb')
+def main(out_dir, dds_dir, albedos, identifiers):
+	wta_fp = open(out_dir,'wb')
 
 	dds_files = find_files(dds_dir, 'dds')
 	albedos_array = albedos.split(',')
 	for i in range(len(albedos_array)):
 		albedos_array[i] = int(albedos_array[i])
+	identifiers_array = identifiers.split(',')
 	#print(albedos_array)
 
 	unknown04 = 3
@@ -72,7 +69,7 @@ def main(out_dir, wta_name, dds_dir, albedos):
 			if temp_reading == b'\x00\x00\x00\x00\x00\x00\x00\x00' and not dxt == b'DXT3':
 				dds_padding += 8
 			temp_reading = dds_fp.read(8)
-		#print(dds_padding)
+		print(dds_padding)
 		#print(dds_paddedSize)
 
 		#wtaTextureOffset
@@ -94,7 +91,7 @@ def main(out_dir, wta_name, dds_dir, albedos):
 		#wtaTextureSize
 		wtaTextureSize[i] = dds_paddedSize - dds_padding
 		#wtaTextureIdentifier
-		##temp removal##wtaTextureIdentifier[i] = random_identifier()
+		wtaTextureIdentifier[i] = identifiers_array[i]
 		#unknownArray1
 		if i in albedos_array:
 			unknownArray1[i] = 637534240
@@ -131,7 +128,8 @@ def main(out_dir, wta_name, dds_dir, albedos):
 		dds_fp.close()
 
 	#temp defaults
-	wtaTextureIdentifier = ['7a861a50', '31522db9', '6eff561f', '74aed53b', '3373e322', '6fd76040', '632ddfb6', '125b5aec', '4c6d5e48', '2fd4343c', '168ec964', '64b8fa0b', '421e76d1']
+	#wtaTextureIdentifier = ['7a861a50', '31522db9', '6eff561f', '74aed53b', '3373e322', '6fd76040', '632ddfb6', '125b5aec', '4c6d5e48', '2fd4343c', '168ec964', '64b8fa0b', '421e76d1']
+	print(wtaTextureIdentifier)
 	print(wtaTextureOffset)
 	print(wtaTextureSize)
 
@@ -170,13 +168,13 @@ def main(out_dir, wta_name, dds_dir, albedos):
 	wta_fp.close()
 
 if __name__ == "__main__":
-	useage = "\nUseage:(albedo positions comma seperated, no space)\n    python wta_gen.py output_path wta_name dds_folder_path albedo_positions"
+	useage = "\nUseage:(arrays comma seperated, no space)\n    python wta_gen.py output_path dds_folder_path albedo_positions_array identifiers_array\n    Eg: python wta_gen.py C:\\NierA\\pl000d.wta C:\\NierA\\dds 0,2 a1b2c3d4,b2a1c3d4,8longhex"
 	if len(sys.argv) < 4:
 		print(useage)
 		exit()
 	if len(sys.argv) > 4:
 		out_dir = sys.argv[1]
-		wta_name = sys.argv[2]
-		dds_dir = sys.argv[3]
-		albedos = sys.argv[4]
-	main(out_dir, wta_name, dds_dir, albedos)
+		dds_dir = sys.argv[2]
+		albedos = sys.argv[3]
+		identifiers = sys.argv[4]
+	main(out_dir, dds_dir, albedos, identifiers)
