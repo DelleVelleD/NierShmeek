@@ -321,35 +321,48 @@ def updateOffset(buffer):
 #Blender Info Grab
 def generateBlenderInfo():
 	#Bones
+	blenderBones.clear()
 	for bone in bpy.data.armatures[0].bones:
 		blenderBones.append(bone)	
 	#Meshes
+	blenderMeshes.clear()
 	for object in bpy.data.objects:
 		if object.type == 'MESH':
 			blenderMeshes.append(object)
 	#Materials
+	blenderMaterials.clear()
 	for material in bpy.data.materials:
 		blenderMaterials.append(material)
 	#Textures
+	blenderTextures.clear()
 	for texture in bpy.data.textures:
 		blenderTextures.append(texture)
 	
 def generateBlenderDics(): #requires generateBlenderInfo()
 	#Mesh Name:Vertices
+	blenderMeshVerticesDic.clear()
 	for mesh in blenderMeshes:
 		blenderMeshVerticesDic[mesh.data.name] = mesh.data.vertices.values()
 	#Mesh Name:Loops
+	blenderMeshLoopsDic.clear()
 	for mesh in blenderMeshes:
+		try:
+			mesh.data.calc_tangents()
+		except:
+			print("---Mesh {} doesnt have a uv".format(mesh.data.name))
 		blenderMeshLoopsDic[mesh.data.name] = mesh.data.loops.values()
 	#Mesh Name:Vertex Group Names
+	blenderMeshVertexGroupsDic.clear()
 	for object in bpy.data.objects:
 		if object.type == 'MESH':
 			blenderMeshVertexGroupsDic[object.data.name] = object.vertex_groups.keys()
 	if len(blenderMaterials) > 0:
 		#Mesh Name:Materials
+		blenderMeshMaterialsDic.clear()
 		for mesh in blenderMeshes:
 			blenderMeshMaterialsDic[mesh.data.name] = mesh.data.materials[0]
 		#Material Name:Textures
+		blenderMaterialTexturesDic.clear()
 		for material in blenderMaterials:
 			if material in blenderMeshMaterialsDic.values():
 				textures_array = []
@@ -357,21 +370,22 @@ def generateBlenderDics(): #requires generateBlenderInfo()
 					textures_array.append(material.texture_slots[i].texture)
 				blenderMaterialTexturesDic[material.name] = textures_array
 		#Material Name:Index
+		blenderMaterialIndicesDic.clear()
 		for i,material in zip(range(len(blenderMaterials)), blenderMaterials):
 			blenderMaterialIndicesDic[material.name] = i
 	#Bone Name:Index
+	blenderBoneIndicesDic.clear()
 	for i,bone in zip(range(len(blenderBones)), blenderBones):
 		blenderBoneIndicesDic[bone.name] = i
 
 #WMB Generation
 def generateWMBVertices(): #Vertices/VertexExs/Loops, requires generateBlenderDics()
+	wmbMeshVerticesDic.clear()
+	wmbMeshVertexExsDic.clear()
+	wmbMeshLoopsDic.clear()
 	noUV = False
 	for mesh in blenderMeshes:
 		#Mesh Info
-		try:
-			mesh.data.calc_tangents()
-		except:
-			noUV = True
 		mesh_bones = blenderMeshVertexGroupsDic[mesh.data.name]
 		meshVertices = []
 		meshVertexExs = []
@@ -382,10 +396,10 @@ def generateWMBVertices(): #Vertices/VertexExs/Loops, requires generateBlenderDi
 		vertex_tangent = [-1,-1,-1]
 		vertex_uv = [0, 0]
 		vertex_colors = [-1,-1,-1]
+		unique_vertices = []
 		for loop in blenderMeshLoopsDic[mesh.data.name]:
-			unique_vertices = []
 			vIndex = loop.vertex_index
-			if not vIndex in unique_vertices:
+			if vIndex not in unique_vertices:
 				vertex_bones = []
 				vertex_weights = []
 				unique_vertices.append(vIndex)
@@ -440,6 +454,7 @@ def generateWMBVertices(): #Vertices/VertexExs/Loops, requires generateBlenderDi
 			print("---Mesh {} doesnt have a uv".format(mesh.data.name))
 
 def generateWMBBones(): #Bones, requires generateBlenderInfo()
+	wmbBones.clear()
 	for i,bone in zip(range(len(blenderBones)), blenderBones):
 		number = -1 #bone.wmb_num %TEMP%
 		parent_index = -1
@@ -465,6 +480,7 @@ def generateWMBBones(): #Bones, requires generateBlenderInfo()
 		print('There are less than 147 bones, which may cause issues related to the bone index translate table. We dont yet know how it works, so im using pl1040 bones as a default bone table and it has 147 bones.')
 
 def generateWMBBoneSets(): #Bone Sets, requires generateBlenderDics()
+	wmbBoneSets.clear()
 	for mesh in blenderMeshes:
 		offset = currentOffset
 		temp_array = []
@@ -478,6 +494,7 @@ def generateWMBBoneSets(): #Bone Sets, requires generateBlenderDics()
 			wmbBoneSets.append(wmb3_boneSet(offset, temp_array))
 
 def generateWMBTextures(): #Textures, requires generateBlenderDics()
+	wmbTextures.clear()
 	if len(blenderMaterials) > 0:
 		for mesh in blenderMeshes:
 			material_name = blenderMeshMaterialsDic[mesh.data.name].name
@@ -511,6 +528,7 @@ def generateWMBTextures(): #Textures, requires generateBlenderDics()
 		print('---Cant generate WMB textures because there are no materials in blender')
 
 def generateWMBMaterials(): #Materials, requires generateWMBTextures()
+	wmbMaterials.clear()
 	if len(blenderMaterials) > 0:
 		for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 			offset = currentOffset
@@ -531,6 +549,7 @@ def generateWMBMaterials(): #Materials, requires generateWMBTextures()
 		print('---Cant generate WMB materials because there are no materials in blender')
 		
 def generateWMBBatches(): #Batches/Batch Infos/Mesh Material Pairs, requires generateWMBMaterials()
+	wmbBatches.clear()
 	for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 		try:
 			shader_name = wmbMaterials[i].shaderName
@@ -558,10 +577,12 @@ def generateWMBBatches(): #Batches/Batch Infos/Mesh Material Pairs, requires gen
 		wmbMeshMaterialPairs.append(wmb3_meshMaterialPair(i, i))
 
 def generateWMBLods(): #Lods, requires generateWMBBatches()
+	wmbLods.clear()
 	if len(wmbBatches) > 0:
 		wmbLods.append(wmb3_lod(currentOffset, 0, 0, len(wmbBatches)))
 	
 def generateWMBMeshGroups(): #Mesh Groups, requires generateWMBBoneSets()
+	wmbMeshGroups.clear()
 	for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 	#im setting one mesh group per mesh %TEST%
 	#as of now, bound boxes can be bigger than 1%TEST%
@@ -607,6 +628,7 @@ def generateWMBMeshGroups(): #Mesh Groups, requires generateWMBBoneSets()
 			wmbMeshGroups.append(wmb3_meshGroup(offset, name, bbox1, bbox2, material_index_array, bone_index_array))
 	
 def generateWMBBoneMap(): #Bone Map, requires generateWMBBones()
+	wmbBoneMap.clear()
 	for i,bone in zip(range(len(wmbBones)), wmbBones):
 	#bone doesnt go in here if its local_pos x,y,z = its parents local x,y+.1,z (bones without default length go here)
 		if i > 0:
@@ -616,6 +638,7 @@ def generateWMBBoneMap(): #Bone Map, requires generateWMBBones()
 				wmbBoneMap.append(i)
 	
 def generateWMBVertexGroups(): #Vertex Groups (ALL->PBS->EYE), requires generateWMBBatches() 
+	wmbVertexGroups.clear()
 	if len(wmbBatches) > 0:
 		group0 = [0,0]
 		group1 = [0,0]
@@ -635,6 +658,7 @@ def generateWMBVertexGroups(): #Vertex Groups (ALL->PBS->EYE), requires generate
 		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[1].loopArrayOffset + wmbVertexGroups[1].loopNum * 4, 0x7, group2[0], group1[1]))
 
 def generateWMBBoneTable(): #Currently requires nothing
+	wmbBoneTable.clear()
 	#bone table = pl1040 %TEMP%
 	lvl1 = [16, 32, 48, -1, -1, -1, -1, -1, -1, -1, 64, 80, 96, -1, -1, 112, 128, 144, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 160, 176, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 192, 208, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 224, 240, 256, 272, -1, 288, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 304, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 320, 336, 352, 368, 384, 400, 416, 432, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 448]
 	lvl2 = []
@@ -643,6 +667,7 @@ def generateWMBBoneTable(): #Currently requires nothing
 	wmbBoneTable.append(lvl3)
 		
 def generateWMBHeader(): #WMB Header, requires all WMB
+	wmbHeaders.clear()
 	bbox1 = [10,10,10]
 	bbox2 = [-10,-10,-10]
 	bone_count = len(wmbBones)
@@ -681,33 +706,6 @@ def generateWMBHeader(): #WMB Header, requires all WMB
 def WriteWMB(dir, DEBUG): 
 	#Pre-cleanup
 	currentOffset = 0 
-	blenderBones.clear()
-	blenderMeshes.clear()
-	blenderMaterials.clear()
-	blenderTextures.clear()
-	blenderMeshVerticesDic.clear()
-	blenderMeshLoopsDic.clear()
-	blenderMeshVertexGroupsDic.clear()
-	blenderMeshMaterialsDic.clear()
-	blenderMaterialTexturesDic.clear()
-	blenderBoneIndicesDic.clear()
-	blenderMaterialIndicesDic.clear()
-	wmbMeshVerticesDic.clear()
-	wmbMeshVertexExsDic.clear()
-	wmbMeshLoopsDic.clear()
-	wmbBones.clear()
-	wmbBoneSets.clear()
-	wmbMaterials.clear()
-	wmbTextures.clear()
-	wmbBatches.clear()
-	wmbBatchInfos.clear()
-	wmbMeshMaterialPairs.clear()
-	wmbLods.clear()
-	wmbMeshGroups.clear()
-	wmbBoneMap.clear()
-	wmbVertexGroups.clear()
-	wmbBoneTable.clear()
-	wmbHeaders.clear()
 	wmbVerticesOffset = 0
 	wmbVertexGroupsOffset = 0
 	#Begin
@@ -1148,3 +1146,4 @@ def WriteWMB(dir, DEBUG):
 #		main(sys.argv[3],sys.argv[4], True)
 
 #WriteWMB('C:\\Users\\User\\Downloads\\NierA\\temp\\2\\pl1040.wmb', True)
+#WriteWMB('C:\\NierA\\temp\\6\\pl1040.wmb', True)
