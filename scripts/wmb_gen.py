@@ -7,7 +7,6 @@ import time
 import io
 from util import *
 
-currentOffset = 0 
 blenderBones = []
 blenderMeshes = []
 blenderMaterials = []
@@ -315,9 +314,6 @@ class wmb3_meshGroup(object):
 		self.bonesOffset = (info_offset + len(mesh_name) + 1) + (len(material_index_array) * 2)
 		self.bonesNum = len(bone_index_array)
 
-def updateOffset(buffer):
-	currentOffset = buffer.tell()
-
 #Blender Info Grab
 def generateBlenderInfo():
 	#Bones
@@ -479,7 +475,7 @@ def generateWMBBones(): #Bones, requires generateBlenderInfo()
 	if len(wmbBones) < 147:
 		print('There are less than 147 bones, which may cause issues related to the bone index translate table. We dont yet know how it works, so im using pl1040 bones as a default bone table and it has 147 bones.')
 
-def generateWMBBoneSets(): #Bone Sets, requires generateBlenderDics()
+def generateWMBBoneSets(currentOffset): #Bone Sets, requires generateBlenderDics()
 	wmbBoneSets.clear()
 	for mesh in blenderMeshes:
 		offset = currentOffset
@@ -488,10 +484,17 @@ def generateWMBBoneSets(): #Bone Sets, requires generateBlenderDics()
 			for bone in wmbBones:
 				if vertexGroup == bone.name:
 					temp_array.append(blenderBoneIndicesDic[bone.name])
-		if len(wmbBoneSets) > 1:
+		#Pad Bone Set to 8th bone
+		if len(temp_array) > 8:
+			padding = 8 - (len(temp_array) % 8)
+		else:
+			padding = 8 - len(temp_array)
+		for i in range(padding):
+			temp_array.append(0)
+		if len(wmbBoneSets) > 0:
 			wmbBoneSets.append(wmb3_boneSet(wmbBoneSets[-1].boneSetOffset + wmbBoneSets[-1].boneIndexNum * 2, temp_array))
 		else:
-			wmbBoneSets.append(wmb3_boneSet(offset, temp_array))
+			wmbBoneSets.append(wmb3_boneSet(offset + len(blenderMeshes) * 8, temp_array))
 
 def generateWMBTextures(): #Textures, requires generateBlenderDics()
 	wmbTextures.clear()
@@ -527,14 +530,14 @@ def generateWMBTextures(): #Textures, requires generateBlenderDics()
 	else:
 		print('---Cant generate WMB textures because there are no materials in blender')
 
-def generateWMBMaterials(): #Materials, requires generateWMBTextures()
+def generateWMBMaterials(currentOffset): #Materials, requires generateWMBTextures()
 	wmbMaterials.clear()
 	if len(blenderMaterials) > 0:
 		for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 			offset = currentOffset
 			material = blenderMeshMaterialsDic[mesh.data.name]
 			name = material.name
-			shader = '' #material.shader %TEMP%
+			shader = '' #material.shader_type %TEMP%
 			texture_array = []
 			for wmb_texture in wmbTextures:
 				for blender_texture in blenderMaterialTexturesDic[material.name]:
@@ -550,6 +553,8 @@ def generateWMBMaterials(): #Materials, requires generateWMBTextures()
 		
 def generateWMBBatches(): #Batches/Batch Infos/Mesh Material Pairs, requires generateWMBMaterials()
 	wmbBatches.clear()
+	wmbBatchInfos.clear()
+	wmbMeshMaterialPairs.clear()
 	for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 		try:
 			shader_name = wmbMaterials[i].shaderName
@@ -576,12 +581,12 @@ def generateWMBBatches(): #Batches/Batch Infos/Mesh Material Pairs, requires gen
 		wmbBatchInfos.append(wmb3_batchInfo(i, i, i, i))
 		wmbMeshMaterialPairs.append(wmb3_meshMaterialPair(i, i))
 
-def generateWMBLods(): #Lods, requires generateWMBBatches()
+def generateWMBLods(currentOffset): #Lods, requires generateWMBBatches()
 	wmbLods.clear()
 	if len(wmbBatches) > 0:
 		wmbLods.append(wmb3_lod(currentOffset, 0, 0, len(wmbBatches)))
 	
-def generateWMBMeshGroups(): #Mesh Groups, requires generateWMBBoneSets()
+def generateWMBMeshGroups(currentOffset): #Mesh Groups, requires generateWMBBoneSets()
 	wmbMeshGroups.clear()
 	for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
 	#im setting one mesh group per mesh %TEST%
@@ -637,7 +642,7 @@ def generateWMBBoneMap(): #Bone Map, requires generateWMBBones()
 			if bone_pos[0] != parent_pos[0] or bone_pos[1] != (parent_pos[1] + 0.1) or bone_pos[2] != parent_pos[2]:
 				wmbBoneMap.append(i)
 	
-def generateWMBVertexGroups(): #Vertex Groups (ALL->PBS->EYE), requires generateWMBBatches() 
+def generateWMBVertexGroups(offset): #Vertex Groups (ALL->PBS->EYE), requires generateWMBBatches() 
 	wmbVertexGroups.clear()
 	if len(wmbBatches) > 0:
 		group0 = [0,0]
@@ -653,7 +658,7 @@ def generateWMBVertexGroups(): #Vertex Groups (ALL->PBS->EYE), requires generate
 			if batch.vertexGroupIndex == 2:
 				group2[0] += batch.vertexNum
 				group2[1] += batch.loopNum
-		wmbVertexGroups.append(wmb3_vertexGroup(currentOffset + 144, 0xa, group0[0], group0[1]))
+		wmbVertexGroups.append(wmb3_vertexGroup(offset, 0xa, group0[0], group0[1]))
 		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[0].loopArrayOffset + wmbVertexGroups[0].loopNum * 4, 0xb, group1[0], group1[1]))
 		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[1].loopArrayOffset + wmbVertexGroups[1].loopNum * 4, 0x7, group2[0], group1[1]))
 
@@ -677,10 +682,10 @@ def generateWMBHeader(): #WMB Header, requires all WMB
 	batches_count = len(wmbBatches)
 	lods_offset = batches_offset + batches_count*28
 	lods_count = len(wmbLods)
-	mesh_mat_offset = lods_offset + lods_count*20 + batches_count*36 + len('LOD0 ')
+	mesh_mat_offset = lods_offset + lods_count*20 + batches_count*24 + 12
 	mesh_mat_pairs = len(wmbMeshMaterialPairs)
 	bone_set_count = len(wmbBoneSets)
-	bone_map_offset = wmbBoneSets[-1].boneSetOffset + wmbBoneSets[-1].boneIndexNum*2
+	bone_map_offset = wmbBoneSets[-1].boneSetOffset + wmbBoneSets[-1].boneIndexNum * 2
 	bone_map_count = len(wmbBoneMap)
 	mesh_group_count = len(wmbMeshGroups)
 	materials_offset = wmbMeshGroups[-1].bonesOffset + wmbMeshGroups[-1].bonesNum*2
@@ -705,7 +710,6 @@ def generateWMBHeader(): #WMB Header, requires all WMB
 	
 def WriteWMB(dir, DEBUG): 
 	#Pre-cleanup
-	currentOffset = 0 
 	wmbVerticesOffset = 0
 	wmbVertexGroupsOffset = 0
 	#Begin
@@ -789,7 +793,7 @@ def WriteWMB(dir, DEBUG):
 	generateWMBVertices()
 	print('---Generating WMB vertices/vertexExs/loops took {} seconds'.format(round(time.time()-start_time, 2))) 
 	generateWMBTextures()
-	generateWMBMaterials()
+	generateWMBMaterials(0)
 	generateWMBBatches()
 	vertCount = 0
 	vertExCount = 0
@@ -921,8 +925,7 @@ def WriteWMB(dir, DEBUG):
 	wmbBuffer.write(wmbBatchesBuffer.getbuffer())
 	#Lods
 	print('--Writing WMB lods at position: {}'.format(wmbBuffer.tell())) 
-	updateOffset(wmbBuffer)
-	generateWMBLods()
+	generateWMBLods(wmbBuffer.tell())
 	for lod in wmbLods:
 		wmbLodsBuffer.write(to_4Byte(lod.nameOffset))
 		wmbLodsBuffer.write(to_4Byte(lod.lodLevel))
@@ -951,19 +954,13 @@ def WriteWMB(dir, DEBUG):
 	wmbBuffer.write(wmbMeshMatsBuffer.getbuffer())
 	#Bone Sets
 	print('--Writing WMB bone sets at position: {}'.format(wmbBuffer.tell())) 
-	updateOffset(wmbBuffer)
-	generateWMBBoneSets()
+	generateWMBBoneSets(wmbBuffer.tell())
 	for boneSet in wmbBoneSets:
 		wmbBoneSetsBuffer.write(to_4Byte(boneSet.boneSetOffset))
 		wmbBoneSetsBuffer.write(to_4Byte(boneSet.boneIndexNum))
 	for boneSet in wmbBoneSets:
-		if len(boneSet.boneArray) > 8:
-			padding = len(boneSet.boneArray) % 8
-		else:
-			padding = 8 - len(boneSet.boneArray)
 		for boneIndex in boneSet.boneArray:
 			wmbBoneSetsBuffer.write(to_2Byte(boneIndex))
-			wmbBoneSetsBuffer.write(nullBytes(padding*2))
 	wmbBuffer.write(wmbBoneSetsBuffer.getbuffer()) 
 	#Bone Map
 	print('--Writing WMB bone map at position: {}'.format(wmbBuffer.tell())) 
@@ -973,8 +970,7 @@ def WriteWMB(dir, DEBUG):
 	wmbBuffer.write(wmbBoneMapBuffer.getbuffer())
 	#Mesh Groups
 	print('--Writing WMB mesh groups at position: {}'.format(wmbBuffer.tell())) 
-	updateOffset(wmbBuffer)
-	generateWMBMeshGroups()
+	generateWMBMeshGroups(wmbBuffer.tell())
 	for meshGroup in wmbMeshGroups:
 		wmbMeshGroupsBuffer.write(to_4Byte(meshGroup.nameOffset))
 		wmbMeshGroupsBuffer.write(to_4Byte(meshGroup.boundBox1[0]))
@@ -993,15 +989,14 @@ def WriteWMB(dir, DEBUG):
 			wmbMeshGroupsBuffer.write(to_2Byte(matIndex))
 		for boneIndex in meshGroup.boneIndexArray:
 			wmbMeshGroupsBuffer.write(to_2Byte(boneIndex))
-	if len(wmbMeshGroupsBuffer.getbuffer()) % 8 != 0:
-		padding = len(wmbMeshGroupsBuffer.getbuffer()) % 8
-		wmbMeshGroupsBuffer.write(nullBytes(padding))
+	#if len(wmbMeshGroupsBuffer.getbuffer()) % 8 != 0:	%TEMP%
+	#	padding = 8 - len(wmbMeshGroupsBuffer.getbuffer()) % 8
+	#	wmbMeshGroupsBuffer.write(nullBytes(padding))
 	wmbBuffer.write(wmbMeshGroupsBuffer.getbuffer())
 	#Materials
 	print('--Writing WMB materials at position: {}'.format(wmbBuffer.tell())) 
-	updateOffset(wmbBuffer)
 	wmbMaterials.clear()
-	generateWMBMaterials()
+	generateWMBMaterials(wmbBuffer.tell())
 	for material in wmbMaterials:
 		wmbMaterialsBuffer.write(material.first8Bytes)
 		wmbMaterialsBuffer.write(to_4Byte(material.materialNameOffset))
@@ -1045,12 +1040,9 @@ def WriteWMB(dir, DEBUG):
 	#Vertex Groups
 	wmbBuffer.seek(wmbVertexGroupsOffset)
 	print('--Writing WMB vertex groups at position: {}'.format(wmbBuffer.tell())) 
-	currentOffset = wmbVerticesOffset
-	print(currentOffset)
-	generateWMBVertexGroups()
+	generateWMBVertexGroups(wmbVerticesOffset)
 	for i,vertexGroup in zip(range(len(wmbVertexGroups)), wmbVertexGroups):
 		wmbVertexGroupsBuffer.write(to_4Byte(vertexGroup.vertexArrayOffset))
-		print("---Vertex group {}'s vertices offset: {}".format(i, vertexGroup.vertexArrayOffset))
 		wmbVertexGroupsBuffer.write(to_4Byte(vertexGroup.vertexExArrayOffset))
 		wmbVertexGroupsBuffer.write(to_4Byte(0))
 		wmbVertexGroupsBuffer.write(to_4Byte(0))
@@ -1131,19 +1123,15 @@ def WriteWMB(dir, DEBUG):
 	wmbMeshGroupsBuffer.close()
 	wmbMaterialsBuffer.close()
 	
-#def main(filepath, name, debug):
-#	WriteWMB(filepath + '\\' + name, debug)
-	
-
 #if __name__ == '__main__':
-#	usage = '\nUsage:\n    blender --background --python output_directory output_name\n    Eg: blender --background --python C:\\NierA pl000d.wmb'
-#	if len(sys.argv) < 5:
+#	usage = '\nUsage:\n    blender --background --python output_path\n    Eg: blender --background --python C:\\NierA\\pl000d.wmb'
+#	if len(sys.argv) < 4:
 #		print(usage)
 #		exit()
-#	if len(sys.argv) == 5:
-#		main(sys.argv[3],sys.argv[4], False)
-#	if len(sys.argv) > 5:
-#		main(sys.argv[3],sys.argv[4], True)
+#	if len(sys.argv) == 4:
+#		WriteWMB(sys.argv[3], False)
+#	if len(sys.argv) > 4:
+#		WriteWMB(sys.argv[3], True)
 
 #WriteWMB('C:\\Users\\User\\Downloads\\NierA\\temp\\2\\pl1040.wmb', True)
 #WriteWMB('C:\\NierA\\temp\\6\\pl1040.wmb', True)
