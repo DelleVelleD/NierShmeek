@@ -17,7 +17,10 @@ def find_files(dir_name,ext):
 			#print(filename)
 			if filename.find(ext) > -1:
 				filenameArray.append(filename)
-	filenameArray.sort(key=dds_number)
+	try:
+		filenameArray.sort(key=dds_number)
+	except:
+		print('-Please put _n after each dds name, where n is order in which they should be placed in the wtp')
 	return filenameArray
 
 def pad_dds_dir(dds_dir):
@@ -31,15 +34,27 @@ def pad_dds_dir(dds_dir):
 	for i in range(len(ddsArray)):
 		dds_lSize = os.stat(ddsArray[i]).st_size
 		dds_dSize = ((dds_lSize + (dds_cSize - 1)) // dds_cSize) * dds_cSize
-		paddingAmount = dds_dSize - dds_lSize
 		#print(paddingAmount)
-
+		if dds_dSize < 12289:
+			paddingAmount = 12288 - dds_lSize 
+		elif dds_dSize < 176129:
+			paddingAmount = 176128 - dds_lSize 
+		elif dds_dSize < 352257:
+			paddingAmount = 352256 - dds_lSize 
+		elif dds_dSize < 528385:
+			paddingAmount = 528384 - dds_lSize 
+		elif dds_dSize < 700417:
+			paddingAmount = 700416 - dds_lSize 
+		elif dds_dSize < 2797569:
+			paddingAmount = 2797568 - dds_lSize 
+		else:
+			paddingAmount = dds_dSize - dds_lSize
 		#print(os.stat(ddsArray[i]).st_size)
 		dds_fp = open(ddsArray[i], 'ab')
-		print("padding dds: " + ddsArray[i] + " with " + str(paddingAmount) + " bytes")
 		dds_fp.seek(dds_lSize)
 		
 		if i != len(ddsArray)-1:
+			print("-Padding dds: " + ddsArray[i] + " with " + str(paddingAmount) + " bytes")
 			for j in range(paddingAmount):
 				dds_fp.write(b'\x00')
 		dds_fp.close()
@@ -47,13 +62,14 @@ def pad_dds_dir(dds_dir):
 
 def main(dds_dir, wtpName):
 	pad_dds_dir(dds_dir)
+
 	filenameArray = find_files(dds_dir, 'dds')
 	wtp_fp = open(dds_dir + '/' + wtpName + '.wtp','wb')
 	
 	for i in range(len(filenameArray)):
 		dds_fp = open(filenameArray[i],'rb')
 		content = dds_fp.read()
-		print("writing dds: " + filenameArray[i] + " to file: " + wtpName + ".wtp at position: " + str(i))
+		print("-Writing dds: " + filenameArray[i] + " to file: " + wtpName + ".wtp at position: " + str(i))
 		wtp_fp.write(content)
 		dds_fp.close()
 	wtp_fp.close()
