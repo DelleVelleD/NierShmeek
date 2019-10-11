@@ -47,9 +47,9 @@ def pad_dds_dir(dds_dir):
 
 def main(dds_dir, wtpName):
 	pad_dds_dir(dds_dir)
-
-	wtp_fp = open(dds_dir + '/' + wtpName + '.wtp','wb')
 	filenameArray = find_files(dds_dir, 'dds')
+	wtp_fp = open(dds_dir + '/' + wtpName + '.wtp','wb')
+	
 	for i in range(len(filenameArray)):
 		dds_fp = open(filenameArray[i],'rb')
 		content = dds_fp.read()
