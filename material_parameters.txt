@@ -3,7 +3,7 @@
 0.0	normal? (no difference)
 0.0	?
 0.0	tangent? (made its slightly see-through when facing lighted objects)
-1.0	?
+1.0	g_1BitMask (alpha)
 1.0	uv map x (horiontal)
 1.0 uv map y (vertical)
 1.0 ?
