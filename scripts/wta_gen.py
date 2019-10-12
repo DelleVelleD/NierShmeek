@@ -64,11 +64,11 @@ def main(out_dir, dds_dir, albedos, identifiers):
 		#finds how much padding bytes are added to a dds
 		dds_padding = 0
 		dds_fp.seek(128)
-		temp_reading = dds_fp.read(8)
+		temp_reading = dds_fp.read(16)
 		while temp_reading:
-			if temp_reading == b'\x00\x00\x00\x00\x00\x00\x00\x00' and not dxt == b'DXT3':
-				dds_padding += 8
-			temp_reading = dds_fp.read(8)
+			if temp_reading == b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' and not dxt == b'DXT3':
+				dds_padding += 16
+			temp_reading = dds_fp.read(16)
 		print(dds_padding)
 		#print(dds_paddedSize)
 
@@ -129,7 +129,7 @@ def main(out_dir, dds_dir, albedos, identifiers):
 
 	#temp defaults
 	#wtaTextureIdentifier = ['7a861a50', '31522db9', '6eff561f', '74aed53b', '3373e322', '6fd76040', '632ddfb6', '125b5aec', '4c6d5e48', '2fd4343c', '168ec964', '64b8fa0b', '421e76d1']
-	print(wtaTextureIdentifier)
+	print( wtaTextureIdentifier)
 	print(wtaTextureOffset)
 	print(wtaTextureSize)
 
