@@ -1,44 +1,75 @@
-1.0	binormal? (removed all normals)
-0.0	color
-0.0	normal? (no difference)
-0.0	?
-0.0	tangent? (made its slightly see-through when facing lighted objects)
-1.0	g_1BitMask (alpha)
-1.0	uv map x (horiontal)
-1.0 uv map y (vertical)
-1.0 ?
-1.0 ?
-0.0 oversized normals? (made it looks camo)
-0.0 ?
-0.018340999260544777	?
-0.018340999260544777	?
-0.018340999260544777	?
-0.0	?
-0.0	?
-0.0	?
-0.0	?
-0.3	radiance/fuzz mask (glows at super high values)
-0.5	same as above but way brighter
-3.0	? (changing to negative inverted colors when camera is pointed at model)
-0.5	?
-0.0	color in the light? (hurts framerate)
-0.0	?
-0.0	?
-0.0	?
-0.0	?
-0.0	?
-0.1	?
-0.1	?
-0.0	?
-0.0	glossy
-0.0	?
-0.63	?
-0.85	?
-0.0	?
-0.0	?
-0.0	?
-0.0	?
-1.0	red glow/radiance
-1.0	green glow/radiance
-1.0	blue glow/radiance
-0.0	colors become faded? kinda bleached
+Hair01_XXXXX:
+    0	 binormal? (removed all normals)
+    1	 color
+    2	 normal? (no difference)
+    3	 ?
+    4	 tangent? (made its slightly see-through when facing lighted objects)
+    5	 g_1BitMask (alpha)
+    6	 uv map x (horiontal)
+    7  uv map y (vertical)
+    8  ?
+    9  ?
+    10 ?
+    11 ?
+    12	g_AlbedoColor_X
+    13	g_AlbedoColor_Y
+    14	g_AlbedoColor_Z
+    15	?
+    16	?
+    17	?
+    18	?
+    19	?
+    20	?
+    21	? 
+    22	?
+    23	?
+    24	?
+    25	?
+    26	?
+    27	?
+    28	?
+    29	g_Anistrophic_X
+    30	g_Anistrophic_Y
+    31	?
+    32	g_NoiseTile_X
+    33	g_NoiseTileY
+    34	?
+    35	?
+    36	?
+    37	g_SecondaryMetallic
+    38	g_SecondaryGlossiness
+    39	g_SecondarySpecShift
+    40	?
+    41	?
+    42	?
+    43	?
+    
+CLT00_XXXXX:
+    0	binormal? (removed all normals)
+    1	color
+    2	normal? (no difference)
+    3	?
+    4	tangent? (made its slightly see-through when facing lighted objects)
+    5	g_1BitMask (alpha)
+    6	uv map x (horiontal)
+    7 uv map y (vertical)
+    8 ?
+    9 ?
+    10 oversized normals? (made it looks camo)
+    11 ?
+    12	g_AlbedoColor_X
+    13	g_AlbedoColor_Y
+    14	g_AlbedoColor_Z
+    15	?
+    16	?
+    17	?
+    18	?
+    19	radiance/fuzz mask (glows at super high values)
+    20	same as above but way brighter
+    21	? (changing to negative inverted colors when camera is pointed at model)
+    22	?
+    23	color in the light? (hurts framerate)
+    40	g_LightIntensity0 (red glow/radiance)
+    41	g_LightIntensity1 (green glow/radiance)
+    42	g_LightIntensity2 (blue glow/radiance)
+    43	colors become faded? kinda bleached
