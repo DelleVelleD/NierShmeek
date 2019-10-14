@@ -3,6 +3,9 @@ import sys
 import struct
 import random
 
+def to_int(bs):
+	return (int.from_bytes(bs, byteorder='little'))
+
 def dds_number(dds_path):
 	split_dds = dds_path.split('_')
 	#print(split_dds)
@@ -50,6 +53,7 @@ def main(out_dir, dds_dir, albedos, identifiers):
 	wtaTextureIdentifier = [0] * textureCount
 	unknownArray1 = [0] * textureCount
 	unknownArray2 = []
+	paddingAmountArray = []
 	
 	for i in range(len(dds_files)):
 		dds_fp = open(dds_files[i], 'rb')
@@ -63,13 +67,10 @@ def main(out_dir, dds_dir, albedos, identifiers):
 
 		#finds how much padding bytes are added to a dds
 		dds_padding = 0
-		dds_fp.seek(128)
-		temp_reading = dds_fp.read(16)
-		while temp_reading:
-			if temp_reading == b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' and not dxt == b'DXT3':
-				dds_padding += 16
-			temp_reading = dds_fp.read(16)
-		print(dds_padding)
+		if i != len(dds_files)-1:
+			dds_fp.seek(dds_paddedSize-4)
+			dds_padding = to_int(dds_fp.read(4))
+		paddingAmountArray.append(dds_padding)
 		#print(dds_paddedSize)
 
 		#wtaTextureOffset
@@ -129,7 +130,8 @@ def main(out_dir, dds_dir, albedos, identifiers):
 
 	#temp defaults
 	#wtaTextureIdentifier = ['7a861a50', '31522db9', '6eff561f', '74aed53b', '3373e322', '6fd76040', '632ddfb6', '125b5aec', '4c6d5e48', '2fd4343c', '168ec964', '64b8fa0b', '421e76d1']
-	print( wtaTextureIdentifier)
+	print(paddingAmountArray)
+	print(wtaTextureIdentifier)
 	print(wtaTextureOffset)
 	print(wtaTextureSize)
 
@@ -168,7 +170,7 @@ def main(out_dir, dds_dir, albedos, identifiers):
 	wta_fp.close()
 
 if __name__ == "__main__":
-	useage = "\nUseage:(arrays comma seperated, no space)\n    python wta_gen.py output_path dds_folder_path albedo_positions_array identifiers_array\n    Eg: python wta_gen.py C:\\NierA\\pl000d.wta C:\\NierA\\dds 0,2 a1b2c3d4,b2a1c3d4,8longhex"
+	useage = "\nUseage:\n    python wta_gen.py output_path dds_folder_path albedo_positions_array identifiers_array\n    Eg: python wta_gen.py C:\\NierA\\pl000d.wta C:\\NierA\\dds 0,2 a1b2c3d4,b2a1c3d4,8longhex"
 	if len(sys.argv) < 4:
 		print(useage)
 		exit()
