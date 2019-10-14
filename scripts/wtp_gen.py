@@ -21,7 +21,7 @@ def find_files(dir_name,ext):
 	try:
 		filenameArray.sort(key=dds_number)
 	except:
-		print('-Please put _n after each dds name, where n is order in which they should be placed in the wtp')
+		print('-Please put _n after each dds name, where n is order in which they should be placed in the wtp and wta (order albedos and their normals next to eachother)')
 	return filenameArray
 
 def pad_dds_dir(dds_dir):
@@ -77,11 +77,11 @@ def main(dds_dir, out_path):
 	wtp_fp.close()
 
 if __name__ == "__main__":
-	useage = "\nUseage:(places wtp file in dds folder)\n    python wtp_gen.py dds_folder_path output_path"
+	useage = "\nUseage:\n    python wtp_gen.py output_path dds_folder_path\nEg:    python wtp_gen.py C:\\NierA\\pl000d.wtp C:\\NierA\\dds"
 	if len(sys.argv) < 2:
 		print(useage)
 		exit()
 	if len(sys.argv) > 2:
-		dds_dir = sys.argv[1]
-		output_path = sys.argv[2]
+		dds_dir = sys.argv[2]
+		output_path = sys.argv[1]
 	main(dds_dir, output_path)
