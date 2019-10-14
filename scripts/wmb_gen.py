@@ -75,19 +75,19 @@ class wmb3_vertexGroup(object):
 		self.vertexNum = vertex_num
 		self.loopNum = loop_num
 		self.unknowns = 0
-		if vertex_type == 0xb: #PBS
+		if vertex_type == 11: #PBS
 			self.vertexSize = 28
 			self.vertexExFlags = 11
 			self.vertexExSize = 20
 			self.vertexExArrayOffset = vertex_offset + vertex_num*28 
 			self.loopArrayOffset = (vertex_offset + vertex_num*28) + vertex_num*20
-		if vertex_type == 0x7: #Eyes
+		elif vertex_type == 7: #Eyes
 			self.vertexSize = 28
 			self.vertexExFlags = 7
 			self.vertexExSize = 12
 			self.vertexExArrayOffset = vertex_offset + vertex_num*28
 			self.loopArrayOffset = (vertex_offset + vertex_num*28) + vertex_num*12
-		if vertex_type == 0xa: #Else
+		elif vertex_type == 10: #Else
 			self.vertexSize = 28
 			self.vertexExFlags = 10
 			self.vertexExSize = 16
@@ -244,24 +244,24 @@ class wmb3_material(object):
 				self.paramNum = 2
 				self.varNum = 62
 				params = 48
-				self.paramArray = [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.0, 0.2, 0.0, 0.0, 0.3, 1.0, 2.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.1, 0.1, 0.0, 0.0, 1.0, 0.2, 0.6, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+				self.paramArray = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.0, 0.2, 0.0, 0.0, 0.3, 1.0, 2.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.1, 0.1, 0.0, 0.0, 1.0, 0.2, 0.6, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 				self.varNames = ['Binormal0', 'Color0', 'Normal', 'Position', 'Tangent0', 'TexCoord0', 'TexCoord1', 'g_1BitMask', 'g_AlbedoColor_X', 'g_AlbedoColor_Y', 'g_AlbedoColor_Z', 'g_AmbientLightIntensity', 'g_AnisoLightMode', 'g_AnisoLightMode2', 'g_Anisotropic', 'g_Anisotropic_X', 'g_Anisotropic_Y', 'g_Decal', 'g_DetailNormalTile_X', 'g_DetailNormalTile_Y', 'g_FuzzColorCorrection_X', 'g_FuzzColorCorrection_Y', 'g_FuzzColorCorrection_Z', 'g_FuzzExponent', 'g_FuzzMaskEffective', 'g_FuzzMul', 'g_FuzzReverse', 'g_FuzzShadowLowerLimit', 'g_Glossiness', 'g_HilIghtIntensity', 'g_IsSwatchRender', 'g_LighIntensity0', 'g_LighIntensity1', 'g_LighIntensity2', 'g_LightColor0_X', 'g_LightColor0_Y', 'g_LightColor0_Z', 'g_LightColor1_X', 'g_LightColor1_Y', 'g_LightColor1_Z', 'g_LightColor2_X', 'g_LightColor2_Y', 'g_LightColor2_Z', 'g_LightIntensity', 'g_Metallic', 'g_NormalReverse', 'g_ObjWetStrength', 'g_OffShadowCast', 'g_ReflectionIntensity', 'g_Tile_X', 'g_Tile_Y', 'g_UseDetailNormalMap', 'g_UseEnvWet', 'g_UseNormalMap', 'g_UseObjWet', 'g_WetConvergenceGlossiness', 'g_WetConvergenceHLI', 'g_WetConvergenceMetalic', 'g_WetMagAlbedo', 'g_bAlbedoOverWrite', 'g_bGlossinessOverWrite', 'g_bMetalicOverWrite']
 				self.varValues = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 0.1, 0.1, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 0.0, 0.0, 0.3, 0.2, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.4, 0.0, 0.0, 0.4, 0.0, 0.0, 0.0]
 			elif self.shaderName == 'PBS00_XXXXX':
 				self.paramNum = 2
 				params = 36
 				self.varNum = 50
-				self.paramArray = [1.0, 0, 0, 0, 0, 0, 1.0, 1.0, 50.0, 50.0, 1.0, 0, 0, 0, 0, 0, 0.5, 0.5, 0, 0.2, 0, 0, 0, 0, 1.0, 0.4, 0.8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+				self.paramArray = [1.0, 0, 0, 0, 0, 1.0, 1.0, 1.0, 50.0, 50.0, 1.0, 0, 0, 0, 0, 0, 0.5, 0.5, 0, 0.2, 0, 0, 0, 0, 1.0, 0.4, 0.8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 				self.varNames = ['Binormal0', 'Color0', 'Normal', 'Position', 'Tangent0', 'TexCoord0', 'TexCoord1', 'g_1BitMask', 'g_AlbedoColor_X', 'g_AlbedoColor_Y', 'g_AlbedoColor_Z', 'g_AmbientLightIntensity', 'g_Anisotropic', 'g_Decal', 'g_DetailNormalTile_X', 'g_DetailNormalTile_Y', 'g_Glossiness', 'g_IsSwatchRender', 'g_LighIntensity0', 'g_LighIntensity1', 'g_LighIntensity2', 'g_LightColor0_X', 'g_LightColor0_Y', 'g_LightColor0_Z', 'g_LightColor1_X', 'g_LightColor1_Y', 'g_LightColor1_Z', 'g_LightColor2_X', 'g_LightColor2_Y', 'g_LightColor2_Z', 'g_LightIntensity', 'g_Metallic', 'g_NormalReverse', 'g_ObjWetStrength', 'g_OffShadowCast', 'g_ReflectionIntensity', 'g_Tile_X', 'g_Tile_Y', 'g_UV2Use', 'g_UseDetailNormalMap', 'g_UseEnvWet', 'g_UseLightMap', 'g_UseNormalMap', 'g_UseObjWet', 'g_UseOcclusionMap', 'g_WetConvergenceGlossiness', 'g_WetMagAlbedo', 'g_bAlbedoOverWrite', 'g_bGlossinessOverWrite', 'g_bMetalicOverWrite']
 				self.varValues = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 1.0, 0.2, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.6, 0.5, 0.0, 0.0, 0.0]
 			elif self.shaderName == 'SKN00_XXXXX':
 				self.paramNum = 2
 				params = 44
 				self.varNum = 55
-				self.paramArray = [1.0, 0, 0, 0, 0, 0, 0, 0, 20.0, 20.0, 1.0, 0, 0.5, 0.5, 0.5, 0, 0.2, 0, 0, 0, 1.0, 1.5, 1.0, 0, 0.291777, 0.039546, 0.039546, 0, 0.806955, 0.300551, 0.201554, 5.0, 0, 1.0, 0.63, 0.8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+				self.paramArray = [1.0, 0, 0, 0, 0, 1.0, 0, 0, 20.0, 20.0, 1.0, 0, 0.5, 0.5, 0.5, 0, 0.2, 0, 0, 0, 1.0, 1.5, 1.0, 0, 0.291777, 0.039546, 0.039546, 0, 0.806955, 0.300551, 0.201554, 5.0, 0, 1.0, 0.63, 0.8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 				self.varNames = ['Binormal0', 'Color0', 'Normal', 'Position', 'Tangent0', 'TexCoord0', 'TexCoord1', 'g_1BitMask', 'g_AlbedoColor_X', 'g_AlbedoColor_Y', 'g_AlbedoColor_Z', 'g_AmbientLightIntensity', 'g_Anisotropic', 'g_DetailNormalTile_X', 'g_DetailNormalTile_Y', 'g_EnvRoughnessHosei', 'g_Glossiness', 'g_IsSwatchRender', 'g_LighIntensity0', 'g_LighIntensity1', 'g_LighIntensity2', 'g_LightColor0_X', 'g_LightColor0_Y', 'g_LightColor0_Z', 'g_LightColor1_X', 'g_LightColor1_Y', 'g_LightColor1_Z', 'g_LightColor2_X', 'g_LightColor2_Y', 'g_LightColor2_Z', 'g_LightIntensity', 'g_Metallic', 'g_NormalReverse', 'g_ObjWetStrength', 'g_OcclusionColor_X', 'g_OcclusionColor_Y', 'g_OcclusionColor_Z', 'g_OffShadowCast', 'g_ReflectionIntensity', 'g_TransMissionColor_X', 'g_TransMissionColor_Y', 'g_TransMissionColor_Z', 'g_UseDetailNormalMap', 'g_UseNormalMap', 'g_UseObjWet', 'g_WetConvergenceGlossiness', 'g_WetMagAlbedo', 'g_bAlbedoOverWrite', 'g_bDispCurvature', 'g_bDispSpecular', 'g_bGlossinessOverWrite', 'g_bMetalicOverWrite', 'g_bUseCurvatureMap', 'g_rho_s', 'g_tuneCurvature']
 				self.varValues = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 1.0, 0.0, 50.0, 50.0, 5.0, 0.2, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.29177701473236084, 0.03954600170254707, 0.03954600170254707, 0.0, 1.0, 0.8069549798965454, 0.30055099725723267, 0.20155400037765503, 1.0, 1.0, 1.0, 0.8, 0.6299999952316284, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
-			elif self. shaderName == 'Eye00_XXXXX':
+			elif self.shaderName == 'Eye00_XXXXX':
 				self.paramNum = 2
 				params = 32
 				self.varNum = 39
@@ -452,7 +452,7 @@ def generateWMBVertices(): #Vertices/VertexExs/Loops, requires generateBlenderDi
 def generateWMBBones(): #Bones, requires generateBlenderInfo()
 	wmbBones.clear()
 	for i,bone in zip(range(len(blenderBones)), blenderBones):
-		number = -1 #bone.wmb_num %TEMP%
+		number = bone.boneID #%TEST%
 		parent_index = -1
 		world_pos = (bone.head.x, bone.head.y, bone.head.z)
 		world_rot = (bone.matrix.to_euler().x, bone.matrix.to_euler().y, bone.matrix.to_euler().z)
@@ -534,10 +534,10 @@ def generateWMBMaterials(currentOffset): #Materials, requires generateWMBTexture
 	wmbMaterials.clear()
 	if len(blenderMaterials) > 0:
 		for i,mesh in zip(range(len(blenderMeshes)), blenderMeshes):
-			offset = currentOffset
+			offset = currentOffset + len(blenderMeshes) * 48
 			material = blenderMeshMaterialsDic[mesh.data.name]
 			name = material.name
-			shader = '' #material.shader_type %TEMP%
+			shader = material.shader_type #%TEST%
 			texture_array = []
 			for wmb_texture in wmbTextures:
 				for blender_texture in blenderMaterialTexturesDic[material.name]:
@@ -658,9 +658,11 @@ def generateWMBVertexGroups(offset): #Vertex Groups (ALL->PBS->EYE), requires ge
 			if batch.vertexGroupIndex == 2:
 				group2[0] += batch.vertexNum
 				group2[1] += batch.loopNum
-		wmbVertexGroups.append(wmb3_vertexGroup(offset, 0xa, group0[0], group0[1]))
-		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[0].loopArrayOffset + wmbVertexGroups[0].loopNum * 4, 0xb, group1[0], group1[1]))
-		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[1].loopArrayOffset + wmbVertexGroups[1].loopNum * 4, 0x7, group2[0], group1[1]))
+		wmbVertexGroups.append(wmb3_vertexGroup(offset, 10, group0[0], group0[1]))
+		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[0].loopArrayOffset + wmbVertexGroups[0].loopNum * 4, 11, group1[0], group1[1]))
+		wmbVertexGroups.append(wmb3_vertexGroup(wmbVertexGroups[1].loopArrayOffset + wmbVertexGroups[1].loopNum * 4, 7, group2[0], group2[1]))
+	else:
+		print('--Cant generate WMV vertex groups because there are no WMB batches')
 
 def generateWMBBoneTable(): #Currently requires nothing
 	wmbBoneTable.clear()
@@ -1016,12 +1018,12 @@ def WriteWMB(dir, DEBUG):
 		#Textures
 		for texOffset,texIdentifier in zip(material.textureOffsetArray, material.textureIdentifierArray):
 			wmbMaterialsBuffer.write(to_4Byte(texOffset))
-			wmbMaterialsBuffer.write(to_4Byte(texIdentifier))
+			wmbMaterialsBuffer.write(to_bytes(texIdentifier))
 		for texName in material.textureNames:
 			wmbMaterialsBuffer.write(to_4Byte(texName))
-		if len(wmbMaterialsBuffer.getbuffer()) % 8 != 0:
-			padding = len(wmbMaterialsBuffer.getbuffer()) % 8
-			wmbMaterialsBuffer.write(nullBytes(padding))
+		#if len(wmbMaterialsBuffer.getbuffer()) % 8 != 0:  #%TEST%
+		#	padding = len(wmbMaterialsBuffer.getbuffer()) % 8
+		#	wmbMaterialsBuffer.write(nullBytes(padding))
 		#Parameters
 		for i,pIndex,pOffset in zip(range(material.paramNum), material.paramIndexArray, material.paramOffsetArray):
 			wmbMaterialsBuffer.write(to_4Byte(pIndex))
