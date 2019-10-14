@@ -1,6 +1,7 @@
 import os
 import sys
 import ctypes
+import struct
 
 def dds_number(dds_path):
 	split_dds = dds_path.split('_')
@@ -55,31 +56,32 @@ def pad_dds_dir(dds_dir):
 		
 		if i != len(ddsArray)-1:
 			print("-Padding dds: " + ddsArray[i] + " with " + str(paddingAmount) + " bytes")
-			for j in range(paddingAmount):
+			for j in range(paddingAmount-4):
 				dds_fp.write(b'\x00')
+			dds_fp.write(struct.pack('<I', paddingAmount))
 		dds_fp.close()
 		#print(os.stat(ddsArray[i]).st_size)
 
-def main(dds_dir, wtpName):
+def main(dds_dir, out_path):
 	pad_dds_dir(dds_dir)
 
 	filenameArray = find_files(dds_dir, 'dds')
-	wtp_fp = open(dds_dir + '/' + wtpName + '.wtp','wb')
+	wtp_fp = open(out_path,'wb')
 	
 	for i in range(len(filenameArray)):
 		dds_fp = open(filenameArray[i],'rb')
 		content = dds_fp.read()
-		print("-Writing dds: " + filenameArray[i] + " to file: " + wtpName + ".wtp at position: " + str(i))
+		print("-Writing dds: " + filenameArray[i] + " to file: " + out_path + " at position: " + str(i))
 		wtp_fp.write(content)
 		dds_fp.close()
 	wtp_fp.close()
 
 if __name__ == "__main__":
-	useage = "\nUseage:(places wtp file in dds folder)\n    python wtp_gen.py dds_folder_path wtp_name"
+	useage = "\nUseage:(places wtp file in dds folder)\n    python wtp_gen.py dds_folder_path output_path"
 	if len(sys.argv) < 2:
 		print(useage)
 		exit()
 	if len(sys.argv) > 2:
 		dds_dir = sys.argv[1]
-		wtp_name = sys.argv[2]
-	main(dds_dir, wtp_name)
+		output_path = sys.argv[2]
+	main(dds_dir, output_path)
