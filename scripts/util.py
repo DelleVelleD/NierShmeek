@@ -27,7 +27,11 @@ def print_class(obj):
 def current_postion(fp):
 	print(hex(fp.tell()))
 
-
+def to_bytes(arg):
+	if type(arg) == int:
+		return struct.pack('<I', arg)
+	if type(arg) == str:
+		return struct.pack('<I', int(arg, 16))
 
 def dds_number(dds_path):
 	split_dds = dds_path.split('_')
@@ -58,8 +62,7 @@ def to_1Byte(arg): #no negatives
 		else:
 			return struct.pack('<B', arg)
 	if type(arg) == float:
-		else:
-			return struct.pack('<B', int(round((arg * 127 + 127))))
+		return struct.pack('<B', int(round((arg * 127 + 127))))
 	
 def to_2Byte(arg): 
 	if type(arg) == float:
