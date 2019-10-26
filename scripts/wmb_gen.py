@@ -1137,3 +1137,14 @@ def WriteWMB(dir, DEBUG):
 
 #WriteWMB('C:\\Users\\User\\Downloads\\NierA\\temp\\2\\pl1040.wmb', True)
 #WriteWMB('C:\\NierA\\temp\\6\\pl1040.wmb', True)
+
+#shader_names = [
+#	("CLT00_XXXXX", "Cloth Shader", "Nier:Automata Cloth Shader"),
+#	("PBS00_XXXXX", "Metallic Shader", "Nier:Automata Metallic Shader"),
+#	("SKN00_XXXXX", "Skin Shader", "Nier:Automata Skin Shader"),
+#	("Eye00_XXXXX", "Eye Shader", "Nier:Automata Eye Shader"),
+#	("Hair01_XXXXX", "Hair Shader", "Nier:Automata Hair Shader"), 
+#	("CNS00_XXXXX", "Eye Reflection Shader", "Nier:Automata Eye Reflection Shader"),
+#	]
+
+#bpy.props.Material.shader_name = 
