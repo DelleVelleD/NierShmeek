@@ -5,6 +5,8 @@ import os
 import sys
 import time
 import io
+import wta_gen
+import wtp_gen
 from util import *
 
 blenderBones = []
@@ -506,7 +508,7 @@ def generateWMBTextures(): #Textures, requires generateBlenderDics()
 				fp = texture.image.filepath
 				name = texture.image.name
 				texture_type = ''
-				identifier = 'a1b2c3d4' #random_identifier() %TEMP%
+				identifier = random_identifier() %TEMP%
 				if texture_slot.use_map_color_diffuse:
 					texture_type = 'g_AlbedoMap'
 				if texture_slot.use_map_normal:
@@ -1124,6 +1126,44 @@ def WriteWMB(dir, DEBUG):
 	wmbBoneMapBuffer.close()
 	wmbMeshGroupsBuffer.close()
 	wmbMaterialsBuffer.close()
+
+def WriteWTA(out_path, DEBUG):
+	print('-Starting WTA file writing') 
+	print('--Grabbing blender information') 
+	generateBlenderInfo()
+	generateBlenderDics()
+	generateWMBTextures()
+	albedo_positions = []
+	identifiers = []
+	dds_dir = ''
+	for texture,i in zip(wmbTextures,range(len(wmbTextures))):
+		print('--Getting dds directory')
+		img_fp = texture.filepath.split('\\')[0:-1]
+		for j in range(len(img_fp)):
+			dds_dir += (img_fp[j] + '\\')
+		print('--Getting albedo positions')
+		if texture.textureType == 'g_AlbedoMap':
+			albedo_positions.append(i)
+		print('--Getting texture itendifiers')
+		identifiers.append(texture.identifier)
+	wta_gen.main(out_path, dds_dir, albedo_positions, identifiers)
+	print('-Finished writing WTA at {}'.format(out_path))
+	
+def WriteWTP(out_dir, DEBUG):
+	print('-Starting WTP file writing')
+	print('--Grabbing blender information')
+	generateBlenderInfo()
+	generateBlenderDics()
+	generateWMBTextures()
+	dds_dir = ''
+	print('--Getting dds directory')
+	img_fp = wmbTextures[0].filepath.split('\\')[0:-1]
+	for j in range(len(img_fp)):
+		dds_dir += (img_fp[j] + '\\')
+	wtp_gen.main(dds_dir, out_path)
+	print('-Finished writing WTP at {}'.format(out_path))	
+
+#def WriteDAT() #this involves more than the wta/wtp/wmb so leaving it out for now
 	
 #if __name__ == '__main__':
 #	usage = '\nUsage:\n    blender --background --python output_path\n    Eg: blender --background --python C:\\NierA\\pl000d.wmb'
