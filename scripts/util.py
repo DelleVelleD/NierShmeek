@@ -3,6 +3,7 @@ import os
 import sys
 import struct
 import numpy as np
+import random
 
 def to_float(bs):
 	return struct.unpack("<f", bs)[0]
@@ -50,6 +51,11 @@ def find_files(dir_name,ext):
 				filenameArray.append(filename)
 	return filenameArray
 
+def random_identifier():
+	identifier_decimal = random.randint(268435456,4294967295) #(10000000,ffffffff)
+	identifier_hex = hex(indentifier_decimal)
+	return identifier_hex
+	
 def nullBytes(num): 
 	return b"".join([b"\x00" for x in range(num)])
 
