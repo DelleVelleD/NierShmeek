@@ -1187,5 +1187,3 @@ shader_names = [
 	("CNS00_XXXXX", "Eye Shadow Shader", "Nier:Automata Eye Shadow Shader"),
 	]
 
-#bpy.types.Material.shader_name = bpy.props.EnumProperty(items=shader_names, name="WMB Material Shader", default="CLT00_XXXXX")
-#bpy.types.Bone.boneID = bpy.props.IntProperty(name="WMB Bone ID",min=-1, max=4095, default=-1)
