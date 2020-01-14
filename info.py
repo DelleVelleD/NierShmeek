@@ -176,6 +176,11 @@ pl000d.wmb:
 		effectName = 'CNS00_XXXXX'
 		varValues = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]
 
+TODO:
+fix wmb_header flags, not always -65226 (check wolf's /wmb/wmb_header.py)
+fix to_1Byte to be more accurate on float to ubyte conversion (check wolf's /vertexgroups/vertexgroup.py)
+fix vertex grab from blender (invert y, tangent sign)
+add default cases if required items arent present (give error or generate empty or both)
 
 identifiers need to match with those in .wmb (test if changing them in .wmb allows custom in .wta)
 (meh)remove debug code on wta, make dbug code in wtp look better
