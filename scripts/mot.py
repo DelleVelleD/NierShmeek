@@ -116,7 +116,7 @@ class mot_record(object):
 							val = (2*t*t*t - 3*t*t + 1)*p0 + (t*t*t - 2*t*t + t)*m0 + (-2*t*t*t + 3*t*t)*p1 + (t*t*t - t*t)*m1
 							return val
 			else:
-				print('Unknown recordType at: ' + self.offset)
+				print('[MOT-Error] Unknown recordType %d at: %d' % self.recordType, self.offset)
 			
 class mot_values_header(object):
 	def __init__(self, mot_file, recordType, valueCount):
@@ -185,7 +185,7 @@ class mot_values_header(object):
 			for i in range(valueCount):
 				self.values.append(mot_value(mot_file, recordType))
 		else:
-			print('Unknown recordType at: ' + self.offset)
+			print('[MOT-Error] Unknown recordType %d at: %d' % self.recordType, self.offset)
 				
 class mot_value(object):
 	def __init__(self, mot_file, recordType):
@@ -225,7 +225,7 @@ class mot_value(object):
 			self.cm0 = to_int(mot_file.read(1)) #incoming derivative quantum
 			self.cm1 = to_int(mot_file.read(1)) #outgoing derivative quantum
 		else:
-			print('Unknown recordType at: ' + super.offset)
+			print('[MOT-Error] Unknown recordType %d at: %d' % self.recordType, super.offset)
 		
 class MOT(object):
 	def __init__(self, mot_fp):
@@ -233,6 +233,8 @@ class MOT(object):
 		mot_file = 0
 		if os.path.exists(mot_fp):
 			mot_file = open(mot_fp, 'rb')
+		else:
+			print("[MOT-Error] File does not exist at: %s" % mot_fp)
 		
 		self.magicNumber = mot_file.read(4)
 		if self.magicNumber == b"mot\x00":
@@ -243,15 +245,18 @@ class MOT(object):
 			self.recordCount = to_int(mot_file.read(4))
 			self.unknown2 = to_int(mot_file.read(4))
 			self.motionName = to_string(mot_file.read(12))
+		else:
+			print("[MOT-Error] This file is not a MOT file.")
 			
 		self.records = []
-		for i in range(self.header.recordCount):
-			mot_file.seek(i*12 + self.header.recordsOffset)
+		for i in range(self.recordCount):
+			mot_file.seek(i*12 + self.recordsOffset)
 			self.records.append(mot_record(mot_file))
 
+		mot_file.close()
 
 if __name__ == "__main__":
-	useage = "\nUseage:\n    python wtp_gen.py mot_path\nEg:    python wtp_gen.py C:\\NierA\\pl0000_0619.mot"
+	useage = "\nUseage:\n    python mot.py mot_path\nEg:    python mot.py C:\\NierA\\pl0000_0619.mot"
 	if len(sys.argv) < 1:
 		print(useage)
 		exit()
