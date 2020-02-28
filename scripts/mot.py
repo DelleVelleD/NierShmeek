@@ -27,23 +27,23 @@ class mot_record(object):
 			values = self.values_header.values
 			if self.recordType == 1:
 				if(frameIndex < 0):
-					return values[0]
+					return values[0].p
 				elif(frameIndex > len(values)):
-					return values[-1]
+					return values[-1].p
 				else:
-					return values[frameIndex]
+					return values[frameIndex].p
 			elif 2 <= self.recordType <= 3:
 				if(frameIndex < 0):
-					return values[0]
+					return self.values_header.p + self.values_header.dp * values[0].cp
 				elif(frameIndex > len(values)):
-					return values[-1]
+					self.values_header.p + self.values_header.dp * values[-1].cp
 				else:
-					return self.values_header.p + self.values_header.dp * values[frameIndex]
+					return self.values_header.p + self.values_header.dp * values[frameIndex].cp
 			elif self.recordType == 4:
 				if(frameIndex < 0):
-					return values[0]
+					return values[0].p
 				elif(frameIndex > len(values)):
-					return values[-1]
+					return values[-1].p
 				else:
 					for i in range(1, len(values)):
 						if(frameIndex == values[i-1].frameIndex):
@@ -60,9 +60,9 @@ class mot_record(object):
 							return val
 			elif 5 <= self.recordType <= 6:
 				if(frameIndex < 0):
-					return values[0]
+					return self.values_header.p + self.values_header.dp * values[0].cp
 				elif(frameIndex > len(values)):
-					return values[-1]
+					return self.values_header.p + self.values_header.dp * values[-1].cp
 				else:
 					for i in range(1, len(values)):
 						if(frameIndex == values[i-1].frameIndex):
@@ -79,9 +79,9 @@ class mot_record(object):
 							return val
 			elif self.recordType == 7:
 				if(frameIndex < 0):
-					return values[0]
+					return self.values_header.p + self.values_header.dp * values[0].cp
 				elif(frameIndex > len(values)):
-					return values[-1]
+					return self.values_header.p + self.values_header.dp * values[-1].cp
 				else:
 					for i in range(1, len(values)):
 						if(frameIndex == values[i-1].frameIndex):
@@ -98,9 +98,9 @@ class mot_record(object):
 							return val
 			elif self.recordType == 8:
 				if(frameIndex < 0):
-					return values[0]
+					return self.values_header.p + self.values_header.dp * values[0].cp
 				elif(frameIndex > len(values)):
-					return values[-1]
+					return self.values_header.p + self.values_header.dp * values[1].cp
 				else:
 					for i in range(1, len(values)):
 						if(frameIndex == values[i-1].frameIndex):
