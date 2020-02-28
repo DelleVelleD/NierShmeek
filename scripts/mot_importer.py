@@ -1,5 +1,5 @@
 import bpy, bmesh, math, mathutils
-import nier2blender.mot as MOT
+import nier2blender_2_80.mot as MOT
 
 def show_message(message = "", title = "Message Box", icon = 'INFO'):
 	def draw(self, context):
@@ -26,7 +26,7 @@ def format_motion_data(frame_count, records):
 				frames.append(record.get_frame(i))
 			bone_records[record.valueType - 1] = frames
 		else:
-			print('[Error] Unknown TrackType:%d' % (record.recordType))
+			print('[MOT-Error] Unknown value type:%d' % (record.valueType))
 		
 	#fill in missing records
 	default_value = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
@@ -52,21 +52,22 @@ def format_motion_data(frame_count, records):
 		
 	return motions
 	
-def construct_action(motion, armature, bind_pose, rotation_resample=False): #(mot.py MOT object, blender.data.armatures object)
-	action = bpy.data.actions.new(name=motion.header.motionName)
+def construct_action(mot, motion, motion_name, armature, bind_pose, rotation_resample=False): #(mot.py MOT object, blender.data.armatures object)
+	print('[+] importing motion %s' + mot.motionName)
+	action = bpy.data.actions.new(name=mot.motionName)
 	action.use_fake_user = True
 	action.target_user = armature.name
 	if armature.animation_data is None:
 		armature.animation_data_create()
 	armature.animation_data.action = action
 	
-	bpy.context.scene.objects.active = armature
+	bpy.context.scene.objects.active = armature #%TODOT% V figure this out V
 	bpy.ops.object.mode_set(mode='POSE') #Set armature to pose mode
 	bone_mapping = armature["bone_mapping"] #Get bones from armature
 	pose_bones = armature.pose.bones 
 	
-	print('[Info] armature.name: %s' % (armature.name))
-	print('[Info] armature.data.name: %s' % (armature.data.name))
+	print('[MOT-Info] armature.name: %s' % (armature.name))
+	print('[MOT-Info] armature.data.name: %s' % (armature.data.name))
 	
 	used_bones = []
 	for bone_number, values in motion.items(): #loop through bones
@@ -74,11 +75,11 @@ def construct_action(motion, armature, bind_pose, rotation_resample=False): #(mo
 		bone_name = bone_mapping.get(str(bone_number))
 		
 		if bone_name is None:
-			print('[Error] bone_number = %d not found in bone_mapping.' % (bone_number))
+			print('[MOT-Error] bone_number = %d not found in bone_mapping.' % (bone_number))
 			continue
 		pose_bone = pose_bones.get(bone_name)
 		if pose_bone is None:
-			print('[Error] %s not found in armature.pose.bones.' % (bone_name))
+			print('[MOT-Error] %s not found in armature.pose.bones.' % (bone_name))
 			continue
 		
 		if bone_name not in used_bones:
@@ -124,7 +125,7 @@ def construct_action(motion, armature, bind_pose, rotation_resample=False): #(mo
 		if scale_values is not None:
 			for scale_value in scale_values:
 				frame = scale_value[0]
-				pose_bone.scale = mathutils.Vector(scale_value[1:4])
+				pose_bone.scale = mathutils.Vector(scale_value[1:4]) #%TODOT% figure this out
 				pose_bone.scale.x /= bind_pose[bone_name][2].x
 				pose_bone.scale.y /= bind_pose[bone_name][2].y
 				pose_bone.scale.z /= bind_pose[bone_name][2].z
@@ -133,7 +134,7 @@ def construct_action(motion, armature, bind_pose, rotation_resample=False): #(mo
 			pose_bone.scale = mathutils.Vector([1,1,1])
 			pose_bone.keyframe_insert("scale", index=-1, frame=1)
 				
-	print('[INFO] Motion Bones Used: ')
+	print('[MOT-Info] Motion Bones Used: ')
 	uBones = ''
 	for boneNum in used_bones:
 		uBones += boneNum + ', '
@@ -148,7 +149,7 @@ def construct_action(motion, armature, bind_pose, rotation_resample=False): #(mo
 	bpy.ops.object.mode_set(mode='OBJECT')
 					
 					
-def calc_bind_pose_transform(armature):
+def calc_bind_pose_transform(armature): #%TODO% figure this out
 	m = mathutils.Matrix()
 	m[0].xyzw = 1, 0, 0, 0
 	m[1].xyzw = 0, 0, 1, 0
@@ -166,8 +167,20 @@ def calc_bind_pose_transform(armature):
 		bind_pose[bone.name] = (loc, rot, scale)
 	return bind_pose
 
-def main(armature):	
+def main(mot_fp, armature):	
+	bpy.ops.object.mode_set(mode='EDIT')
+	bind_pose = calc_bind_pose_transform(armature)
+	bpy.ops.object.mode_set()
 	
+	mot = MOT.MOT(mot_fp)
+	motion = format_motion_data(mot.frameCount, mot.records)
+	construct_action(mot, motion, armature, bind_pose)
+	
+	print('Motion importing finished.')
+	return {'FINISHED'}
+
+if __name__ == '__main__':
+		main('', None)
 					
 					
 					
