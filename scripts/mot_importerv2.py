@@ -63,7 +63,7 @@ def construct_action(wmb, mot, motion_data, armature): #(wmb.py WMB object, mot.
 	print('[MOT-Info] bpy.context.view_layer.objects.active.name: %s' % bpy.context.view_layer.objects.active.name)
 	
 	used_bones = []
-	for bone_number, values in motion.items():
+	for bone_number, values in motion.items(): #loop through bones
 		pos_values, rot_values, scale_values = values
 		bone_name = bone_mapping.get(str(bone_number))
 		
@@ -82,12 +82,29 @@ def construct_action(wmb, mot, motion_data, armature): #(wmb.py WMB object, mot.
 		#position/translation keyframes
 		if pos_values is not None:
 			for pos_value in pos_values:
-				frame = pos_value[0] + 1
-				pose_bone.matrix = pose_bone.matrix_basis.Translation(pos_value[1])
+				frame = pos_value[0] + 1 #set initial frame to 1
+				pose_bone.location = pos_value[1]
 				pose_bone.keyframe_insert("location", index=-1, frame=frame)
 		else:
-			pose_bone.location = mathutils.Vector([0,0,0]) #if no position values, set to 0,0,0
+			pose_bone.location = mathutils.Vector([0,0,0]) #if no position values, set to 0,0,0, not moving the bone
 			pose_bone.keyframe_insert("location", index=-1, frame=1)
 			
 		#rotation keyframes
-		
+		if rot_values is not None:
+			for rot_value in rot_values:
+				frame = rot_value[0] + 1
+				pose_bone.rotation_quaternion = rot_value[1]
+				pose_bone.keyframe_insert("rotation_quaternion", index=-1, frame=frame)
+		else:
+			pose_bone.rotation_quaternion = mathutils.Quaternion([1, 0, 0, 0])
+			pose_bone.keyframe_insert("rotation_quaternion", index=-1, frame=frame)
+
+		#scale keyframe
+		if scale_values is not None:
+			for scale_value in scale_values:
+				frame = scale_value[0]
+				pose_bone.scale = scale_value[1]
+				pose_bone.keyframe_insert("scale", index=-1, frame=frame)
+		else:
+			pose_bone.scale = mathutils.Vector([1, 1, 1])
+			pose_bone.keyframe_insert("scale", index=-1, frame=1)
