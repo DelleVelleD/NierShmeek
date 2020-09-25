@@ -187,6 +187,27 @@ identifiers need to match with those in .wmb (test if changing them in .wmb allo
 test material objects
 test textures objects
 
+textures, independent
+materials, texture dependent
+bones, independent
+mesh groups, material/bone dependent
+bone map, bone dependent
+bone sets, bone dependent
+mesh mat pairs, meshGroup/material dependent
+vertices, independent
+batches, vertex/bone dependent
+lods, batches/vertex/meshGroup/material/meshMat dependent
+header, dependent on all
+
+test if bound boxes can be greater than 1 or less than zero
+test if there can be no materials
+
+padding locations:
+end of bones
+after strings (lod name, )
+after mesh groups
+after texture names
+after header
 
 
 
